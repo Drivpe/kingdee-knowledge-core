@@ -2716,7 +2716,200 @@ def t_link_policy_enforced_in_output():
         _cfg_mod._CONTRACT = real
 
 
-@case("offline: 链接口径六处载体 + 声明一致(无残留『不给链接』/『都可点』表述)")
+# ---------------------------------------------------------------- 同步载体清单
+# 「哪些文档必须与哪份唯一真源一致」只登记在 `docs/agents/doc-sync-targets.md`,
+# 用例**不写载体路径字面量**。2026-11-11 的教训:`CONTEXT.md` 改名 `GLOSSARY.md`,
+# 两条钉子仍读旧路径 → 离线组 67 通过 / 2 失败,而那个文件**没有任何测试在读它**。
+# 改名不该打断守卫;该打断守卫的是载体与真源之间的真实漂移。
+#
+# 术语(这份文件里三个词,说明书只在 `doc-sync-targets.md` 里定义一次):
+#   * **载体** —— 承载某条事实的那份文件。链接政策有六份载体,已删机制有八份。
+#   * **事实 id** —— 一条「必须与某个真源保持一致的事实」的短名,如 `link-policy`。
+#   * **钉子** —— 执行该事实一致性判据的那条回归用例(本仓既有说法,见 ADR-0016)。
+_SYNC_DOC = os.path.join(REPO, "docs", "agents", "doc-sync-targets.md")
+_CONTRACT_SOURCE = os.path.join(SRC, "kd", "contract.json")
+# 版本史/已废止段落里的提法**不是指针**:它们记录的是当时怎么写,不能代替
+# "现行政策去哪看"。判据要能区分这两件事,否则删掉指针也照样绿。
+_HISTORY_MARKS = ("版本 6", "版本 v6", "已推翻", "已废止", "已过期", "当时",
+                  "旧口径", "化石", "历史沿革")
+
+# 「这一行在说某档给不给链接」的判据材料。极性词是用来**发现表态**的:一句里既有
+# 某个 kind 又有极性词,才算它表了态;表态就得与声明一致。
+_POLARITY_WORDS = ("链接", "可点", "url", "URL")
+_SAYS_LINK = ("给链接", "给带", "贴可点击", "贴", "可点击", "可点", "照抄")
+_SAYS_NO_LINK = ("不给", "不可点", "no-link", "不提供", "无链", "抑制")
+
+# 极性判据额外的豁免:这些段落是在**记录某句旧话被判错**,不是在宣布现行口径。
+# 「更正:`question` 这一行错了」「内核原先拼的 /question/<帖子号> 实测 22/22 不可点」
+# 里的"不可点"说的是某个 URL 形式死了,不是这一档不给 —— 那种记录必须留着(它是
+# 防再犯的凭证),因此按段落豁免。只在极性判据上用,不放松指针判据。
+_CORRECTION_MARKS = _HISTORY_MARKS + ("更正", "原先", "错因", "结论对了", "取代此前")
+
+
+def _strip_no_link(seg):
+    """把片段里**否定极性**的词抠掉,剩下的才拿来判"给链接"。
+
+    中文的否定是粘在后面的:「不可点」既含 `可点` 又含 `不可点`,「不给链接」既含
+    `链接` 又含 `不给`。不先抠掉否定式,同一个片段会同时被判成"给"和"不给",
+    两种极性相等就被当成"裁定不了"而放过 —— 那等于把整个判据关掉。
+    返回 `(是否说过否定, 抠掉否定后的片段)`。
+    """
+    rest, said_no = seg, False
+    for word in _SAYS_NO_LINK:
+        if word in rest:
+            said_no = True
+            rest = rest.replace(word, " ")
+    return said_no, rest
+
+
+def _kind_segment(line, kind):
+    """取该行里 `kind` 之后、下一个 kind 之前的片段(小写归一后)。
+
+    链接口径在文档里总是写成「按 kind 分档」——同一行里并列列出知识/文章/问答/其他
+    各给不给。要判断某一档的极性,只能取它自己那一段,取整行会把相邻档的说法
+    也算进来。
+
+    ⚠️ `kind` 必须按**独立词**匹配,不能按子串:术语表里 `` `_upstream._question_url` ``
+    与 `/questions/<帖子号>/answers/<回答号>` 都含 `question`,把它们当成"这一档的
+    表态"会读到隔壁半句的极性(实测:该行后半句讲"回答号缺失时返回 `None` 由政策抑制",
+    被判成"question 不给链接",而那一行说的根本不是档位)。
+    行里没有这个 kind 时返回 `None`(≠空串:空串意味着"提到了但没有下文",那仍然要检查)。
+    """
+    low = line.lower()
+    import re as _re            # 本套件的既有习惯:用到再 import,不在模块头挂全局 re
+    kinds = ("knowledge", "article", "question", "other")
+    hits = []
+    for k in kinds:
+        for m in _re.finditer(r"(?<![a-z0-9_])" + k + r"(?![a-z0-9_])", low):
+            hits.append((m.start(), m.end(), k))
+    hits.sort()
+    for idx, (start, end, k) in enumerate(hits):
+        if k != kind:
+            continue
+        stop = hits[idx + 1][0] if idx + 1 < len(hits) else len(low)
+        return low[start:stop]
+    return None
+
+
+def _paragraphs(lines):
+    """把文件按**空行**切成段落,产出 [[(行号, 行内容), …], …](行号 1-based)。"""
+    para, buf = [], []
+    for i, ln in enumerate(lines, 1):
+        if ln.strip():
+            buf.append((i, ln))
+        elif buf:
+            para.append(buf)
+            buf = []
+    if buf:
+        para.append(buf)
+    return para
+
+
+def _walk_pipe_table(text, section):
+    """取 `## <section>` 之后那张管道表的行 → [(行号, [单元格, …]), …]。
+
+    表头行与 `| --- |` 分隔行被吃掉;单元格里的反引号是 Markdown 行内代码标记而
+    不是数据,一律去掉。表在空行或下一个 `##` 处结束。
+
+    两张表(载体表 / 事实表)共用这一份行扫描:它们的边界、跳过的行、列数的错法
+    完全一样,写两遍就是两处会各自漂移的地方。
+    """
+    out, in_section, header_seen = [], False, False
+    for lineno, line in enumerate(text.split("\n"), 1):
+        s = line.strip()
+        if not in_section:
+            if s.startswith("## ") and section in s:
+                in_section = True
+            continue
+        if s.startswith("## "):
+            break
+        if not s.startswith("|"):
+            if header_seen:      # 表已在空行处结束
+                break
+            continue
+        cells = [c.replace("`", "").strip() for c in s.strip("|").split("|")]
+        if not header_seen:      # 表头行
+            header_seen = True
+            continue
+        if all(set(c) <= set("-: ") for c in cells):   # 分隔行
+            continue
+        out.append((lineno, cells))
+    if in_section and not out:
+        raise Fail("%s 有『## %s』但一行都没解析出来 —— 表格式坏了,钉子在扫空气"
+                   % (os.path.relpath(_SYNC_DOC, REPO), section))
+    return out
+
+
+def _parse_sync_table(text):
+    """载体表 → [(载体名, 相对路径, [事实 id, …]), …]。"""
+    rows = []
+    for lineno, cells in _walk_pipe_table(text, "载体表"):
+        if len(cells) < 3:
+            raise Fail("%s:%d 载体表这一行不是三列(载体名 / 相对路径 / 事实):%r"
+                       % (os.path.relpath(_SYNC_DOC, REPO), lineno, str(cells)[:100]))
+        facts = [f.strip() for f in cells[2].replace("，", ",").split(",") if f.strip()]
+        rows.append((cells[0], cells[1].replace("\\", "/"), facts))
+    return rows
+
+
+def _parse_fact_table(text):
+    """事实表 → {事实 id: 载体数下限}。
+
+    下限是防「摘掉一行就悄悄少守一个载体」的闸:载体表少一行,列举本身不会报错,
+    除非有人拿登记的份数去比。改小下限必须与摘除同批发生。
+    """
+    floors = {}
+    for lineno, cells in _walk_pipe_table(text, "事实表"):
+        if len(cells) < 3:
+            raise Fail("%s:%d 事实表这一行不是三列(事实 id / 唯一真源 / 载体数下限):%r"
+                       % (os.path.relpath(_SYNC_DOC, REPO), lineno, str(cells)[:100]))
+        ok(cells[2].isdigit(),
+           "%s:%d 事实 %r 的载体数下限 %r 不是整数 —— 下限缺失时「摘掉一行」就没人拦得住"
+           % (os.path.relpath(_SYNC_DOC, REPO), lineno, cells[0], cells[2]))
+        floors[cells[0]] = int(cells[2])
+    return floors
+
+
+def _sync_targets(fact):
+    """取登记了 `fact` 的载体 → {载体名: 绝对路径},并核对份数不低于登记的下限。
+
+    载体路径的拼接**只发生在这里**;载体的存在性也只在这里断言一次,两条钉子共用,
+    免得同一件事在三个地方各写一遍、三处各有一条不同措辞的失败消息。
+    """
+    ok(os.path.exists(_SYNC_DOC),
+       "缺同步载体清单 %s —— 两条文档同步钉子没有载体可扫。这份清单是"
+       "「载体改名只需改一行」的唯一修复点,不能不存在。"
+       % os.path.relpath(_SYNC_DOC, REPO))
+    with open(_SYNC_DOC, encoding="utf-8") as f:
+        text = f.read()
+    all_rows = _parse_sync_table(text)
+    ok(all_rows, "同步载体清单 %s 解析出 0 行载体 —— 清单格式坏了,钉子会扫个空还显示绿"
+       % os.path.relpath(_SYNC_DOC, REPO))
+    files = {}
+    for name, rel, facts in all_rows:
+        if fact not in facts:
+            continue
+        ok(name not in files,
+           "同步载体清单里载体名 %r 出现两次,且都登记了 %r —— 一条的事实只能有一个载体"
+           % (name, fact))
+        path = os.path.join(REPO, *rel.split("/"))
+        ok(os.path.exists(path),
+           "同步载体 %s 的路径 %s 在盘上不存在 —— 它改名或搬家了,"
+           "请改 %s 里那一行(这是「改名打断守卫」的唯一修复点)"
+           % (name, rel, os.path.relpath(_SYNC_DOC, REPO)))
+        files[name] = path
+    floors = _parse_fact_table(text)
+    ok(fact in floors,
+       "同步载体清单的『## 事实表』里没有登记事实 %r —— 没有下限,摘掉一行载体就没人拦得住"
+       % fact)
+    ok(len(files) >= floors[fact],
+       "事实 %r 登记了下限 %d 份载体,清单里只剩 %d 份(%s)—— 摘掉载体要同批改小下限,"
+       "并在清单说明里写清它当初是因为哪次漂移进来的。"
+       % (fact, floors[fact], len(files), "、".join(sorted(files))))
+    return files
+
+
+@case("offline: 链接口径各载体 + 声明一致(无残留『不给链接』/『都可点』表述)")
 def t_link_policy_docs_in_sync():
     """**T1 的文档同步钉子** —— 治的是"同一事实抄四遍"。
 
@@ -2731,26 +2924,20 @@ def t_link_policy_docs_in_sync():
     agent 照它执行就不给问答链接,**直接抵消工单 #29 的对外效果**。
     故本次把 `CONTEXT.md` 纳入 `files`,并补上它当时逃逸所依赖的那句 stale 表述。
 
-    本条不检查措辞好坏,只检查**政策方向**在**六处载体**里一致(另以唯一真源
-    `contract.json` 作参照):ANSWER-SPEC / SKILL.md / README / CONTEXT.md /
-    `_upstream.py` 注释 / `_links.py` 注释。
+    本条不检查措辞好坏,只检查**政策方向**在各份载体里一致(另以唯一真源
+    `contract.json` 作参照)。载体名单不写在这里:`docs/agents/doc-sync-targets.md`
+    的 `link-policy` 事实下有六份 —— 三份文档(ANSWER-SPEC / SKILL.md / README)、
+    术语表、以及内核里两处论证(`_upstream.py` 的归一化、`_links.py` 的模板与政策闸门)。
     ⚠️ **2026-10-01 补 `_links.py`** —— 内核侧的链接论证已由 K1(批次 A)搬进
     `_links.py`;不同时纳入就是"载体换了地方、钉子还照着旧地方照"。
+
+    ⚠️ **2026-11-11(票 01)载体路径改从清单读** —— 本条原先把六条路径写成
+    `os.path.join(REPO, …)` 字面量,于是 `CONTEXT.md` 改名 `GLOSSARY.md` 就打断的是
+    **守卫**而不是它要守的一致性:离线组 67 通过 / 2 失败,而那份被改名保护起来的文件
+    当时**没有任何测试在读它**。现在载体登记在 `docs/agents/doc-sync-targets.md`
+    的 `link-policy` 事实下,改名只需改那一行。
     """
-    files = {
-        "ANSWER-SPEC": os.path.join(REPO, "docs", "ANSWER-SPEC.md"),
-        "SKILL.md": os.path.join(REPO, "skills", "kingdee-knowledge", "skills",
-                                 "kingdee-knowledge", "SKILL.md"),
-        "README": os.path.join(REPO, "README.md"),
-        # ⚠️ 第五处:术语表。它曾因缺席而漂移出与声明相反的口径(见 docstring)。
-        "CONTEXT.md": os.path.join(REPO, "CONTEXT.md"),
-        "_upstream.py": os.path.join(SRC, "kd", "_impl", "_upstream.py"),
-        # ⚠️ **第六处:内核侧的链接论证已搬到 `_links.py`**(2026-10-01,批次 A 的 K1)。
-        # 原先只有 `_upstream.py` 作为"内核侧链接论证"的载体,而 K1 把模板 / 必需段 /
-        # 回答号选取 / 政策闸门整条链路收进了 `_links.py` —— 若不同时纳入,那一份
-        # 就是本钉子**照不到**的载体(与 CONTEXT.md 当年逃逸的形态同型)。
-        "_links.py": os.path.join(SRC, "kd", "_impl", "_links.py"),
-    }
+    files = _sync_targets("link-policy")
     # ① 过期表述不得残留(它们是 09-27 那套"一律 302"口径的化石)。
     #    ⚠️ **但"被引用来说明它已废止"是合法的**(如 `_Avoid_` 行:
     #    `"三条路径一律 302"(已推翻的实测口径)`)—— 那不是化石,是把错误口径
@@ -2780,17 +2967,69 @@ def t_link_policy_docs_in_sync():
         txt = open(path, encoding="utf-8").read()
         ok("question" in txt and "knowledge" in txt,
            "%s 的链接口径未按 kind 分档(应分别说明 knowledge/article 与 question)" % name)
-    # ③ README 是**此前漏掉的第五处**,单独钉:它必须指向唯一真源而不是自己另立一套。
-    rd = open(files["README"], encoding="utf-8").read()
-    ok("linkPolicy" in rd,
-       "README 的链接口径未指向唯一真源 contract.json 的 linkPolicy —— "
-       "它曾独立写了一套相反的说法(『引用做成可点击角标』)而无人同步")
-    # ④ CONTEXT.md 同样必须指向唯一真源(它曾断言与真源**相反**的结论)。
-    cx = open(files["CONTEXT.md"], encoding="utf-8").read()
-    ok("linkPolicy" in cx,
-       "CONTEXT.md 的链接口径未指向唯一真源 contract.json 的 linkPolicy —— "
-       "它曾断言『linkPolicy.question 仍为 no-link』而与声明事实相反,让 agent "
-       "照旧口径执行、抵消工单 #29 的对外效果")
+    # ③ 极性必须对着声明比,而不是只挡一份已知措辞的黑名单。
+    #    ⚠️ **2026-11-11 补(评审实测出的缺口)**:①②两条只认 stale 词表里那几句,
+    #    于是换一种说法写错就完全逃过 —— 往 README 追加「knowledge 与 article 不给
+    #    链接,只有 question 给」,当时两条全绿。那句话与声明的方向**恰好相反**
+    #    (声明是三档都给、other 不给),而没有任何一条断言读得出来。
+    #    判据因此改成:按段落扫,凡是同时出现某个 kind 与某个极性的句子,方向必须
+    #    等于 `contract.json` 的 `linkPolicy.rule[kind]`。版本史/已废止段落不参与
+    #    (它们记录的正是被推翻的旧口径,那是有价值的记录,不是漂移)。
+    rule = _CONTRACT["linkPolicy"]["rule"]
+    for name, path in files.items():
+        for para in _paragraphs(open(path, encoding="utf-8").read().split("\n")):
+            if any(any(m in ln for m in _CORRECTION_MARKS) for _i, ln in para):
+                continue
+            for lineno, line in para:
+                for kind in ("knowledge", "article", "question", "other"):
+                    want = rule.get(kind)
+                    if want is None:
+                        continue
+                    seg = _kind_segment(line, kind)
+                    if seg is None or not any(t in seg for t in _POLARITY_WORDS):
+                        continue
+                    says_no, rest = _strip_no_link(seg)
+                    says_link = any(t in rest for t in _SAYS_LINK)
+                    if says_link == says_no:      # 没表态,或同时出现两种(裁定不了)
+                        continue
+                    ok((want == "link") == says_link,
+                       "%s:%d 把 %s 的链接口径写成『%s』,而声明是 %r —— 载体与唯一真源"
+                       "方向相反。若这一行是在记录**已推翻**的旧口径,请在同一段落里"
+                       "写明「已推翻/已废止/当时」等字样。原文:%s"
+                       % (name, lineno, kind, "给链接" if says_link else "不给链接",
+                          want, line.strip()[:120]))
+    # ③ 这两处必须**指向**唯一真源,不只是"口径别写反" —— 它们各自另立过一套:
+    #    README 曾写"引用做成可点击角标"(与声明相反)而无人同步;术语表曾断言
+    #    「linkPolicy.question 仍为 no-link」,让 agent 照旧口径执行、抵消工单 #29。
+    #    谁该背这一档登记在清单的 `link-policy-pointer` 事实下,不在本条写死。
+    #
+    #    判据是**指针,不是字符串**(规格 US19:「断言检查"指针目标存在"而不是
+    #    字符串出现过」)。两处都写这个:
+    #      ✗ ok("linkPolicy" in txt) —— 实测口径:术语表第 48 行是 6.5 版本史,
+    #        那句一样含 `linkPolicy`。于是现行政策的指针被删光、只剩变更史那句时,
+    #        字符串判据**照样绿**,而读者已经拿不到"去哪看现行政策"。
+    #      ✓ 要求存在一行**活的**指针:同一行里既有真源的名字(`contract.json`)
+    #        又有键名(`linkPolicy`),且该行不在版本史段落里;同时真源文件必须在盘上。
+    #    所以下面按段落取活指针,而不是全文搜子串。
+    pointers = _sync_targets("link-policy-pointer")
+    ok("linkPolicy" in _CONTRACT,
+       "唯一真源 %s 里没有 `linkPolicy` 键 —— 指针指向的那一段本身没了,"
+       "再写多少行 'linkPolicy' 都是空的"
+       % os.path.relpath(_CONTRACT_SOURCE, REPO))
+    for name, path in pointers.items():
+        txt = open(path, encoding="utf-8").read()
+        live = []
+        for para in _paragraphs(txt.split("\n")):
+            if any(any(m in ln for m in _HISTORY_MARKS) for _i, ln in para):
+                continue          # 版本史/已废止段落里的提法不算指针
+            for lineno, line in para:
+                if "linkPolicy" in line and "contract.json" in line:
+                    live.append((lineno, line))
+        ok(live,
+           "%s 没有一条**活的**指针指向唯一真源 —— 判据是同一行里既有 `linkPolicy` "
+           "又有 `contract.json`,且不在版本史段落里。只出现一个词不算:术语表的版本史"
+           "段落里也有 `linkPolicy`,那些字并不能告诉读者现行政策去哪看。"
+           "载体清单:docs/agents/doc-sync-targets.md" % name)
 
 
 @case("offline: 检索诊断标记不得写进答案正文(ANSWER-SPEC 措辞有钉子)")
@@ -4327,18 +4566,12 @@ def t_docs_no_dead_mechanisms():
     `__init__.py` 的 `query_routes.json` 残留全部漏网——而安装脚本末尾的"试一试"
     是**用户装机后第一眼看到的用法**,照抄必撞 argparse 退出码 2。判据的面必须覆盖
     **所有会被照抄的地方**,只扫主文档不算同步。
+
+    ⚠️ **2026-11-11(票 01)文件集改从清单读** —— 与 `t_link_policy_docs_in_sync`
+    同一个病:`files` 曾是字面量字典,`CONTEXT.md` 一改名就红在**守卫**身上。现在
+    登记在 `docs/agents/doc-sync-targets.md` 的 `retired-mechanisms` 事实下。
     """
-    files = {
-        "SKILL.md": os.path.join(REPO, "skills", "kingdee-knowledge", "skills",
-                                 "kingdee-knowledge", "SKILL.md"),
-        "README.md": os.path.join(REPO, "README.md"),
-        "ANSWER-SPEC.md": os.path.join(REPO, "docs", "ANSWER-SPEC.md"),
-        "CONTEXT.md": os.path.join(REPO, "CONTEXT.md"),
-        "install.sh": os.path.join(REPO, "install.sh"),
-        "install.ps1": os.path.join(REPO, "install.ps1"),
-        "__init__.py": os.path.join(REPO, "src", "kd", "__init__.py"),
-        "core.py": os.path.join(REPO, "src", "kd", "core.py"),
-    }
+    files = _sync_targets("retired-mechanisms")
     # 变更标记词:含这些词的行是在**说明变更**,不是在教用法。
     change_marks = ("已删", "删除", "废除", "废止", "v6.6", "ADR-0016", "迁移",
                     "不再", "旧版本", "改传", "废弃", "~~", "已退出", "不得", "别再")
@@ -4348,7 +4581,6 @@ def t_docs_no_dead_mechanisms():
     dead_terms = ("query_routes.json",)
     offenders = []
     for label, path in files.items():
-        ok(os.path.exists(path), "缺文档 %s(规格 §5 的同步点)" % label)
         with open(path, encoding="utf-8") as f:
             lines = f.read().split("\n")
         # ⚠️ **段落级**判据(不是行级):变更说明常写成多行——标题行带「已删除」,
@@ -4392,20 +4624,6 @@ def t_docs_no_dead_mechanisms():
        "退出码 2(位置参数已删),而它是文档/脚本里最容易被照抄的写法之一")
     ok(not _re_search_pos_arg('  python3 src/kd_run.py search --kw "问题"'),
        "反向确认失败:扩展前缀后把合法写法误判成位置参数(判据过宽)")
-
-
-def _paragraphs(lines):
-    """把文件按**空行**切成段落,产出 [(行号, 行内容), …] 的列表(行号 1-based)。"""
-    para, buf = [], []
-    for i, ln in enumerate(lines, 1):
-        if ln.strip():
-            buf.append((i, ln))
-        elif buf:
-            para.append(buf)
-            buf = []
-    if buf:
-        para.append(buf)
-    return para
 
 
 def _re_search_pos_arg(line):
