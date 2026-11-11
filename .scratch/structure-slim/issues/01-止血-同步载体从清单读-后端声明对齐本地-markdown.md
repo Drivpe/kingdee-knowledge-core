@@ -10,7 +10,7 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [x] 新建同步载体清单（`docs/agents/doc-sync-targets.md`），逐条列出：载体名、相对路径、它必须与唯一真源保持一致的哪个事实
 - [x] `t_link_policy_docs_in_sync` 的 `files` 字典改为遍历清单，用例正文里不再出现 `os.path.join(REPO, "...")` 形式的载体路径字面量
@@ -28,7 +28,7 @@
 
 ## 做了什么
 
-提交 `7123808`（提交信息里记着完整判据与实测数字）。
+提交 `6f4fe71`（提交信息里记着完整判据与实测数字；评审后的判据重写也在这一个提交里）。
 
 **清单**是 `docs/agents/doc-sync-targets.md`：载体表（名 / 相对路径 / 它背哪几条事实）+ 事实表（事实 id / 唯一真源 / 载体数下限 / 判据由哪条钉子执行）。三条事实挂两条钉子 —— `link-policy` 与 `link-policy-pointer` 都由 `t_link_policy_docs_in_sync` 执行，`retired-mechanisms` 由 `t_docs_no_dead_mechanisms` 执行。载体路径的拼接与存在性断言只在 `_sync_targets()` 一处发生。
 
@@ -68,6 +68,12 @@
 
 后端切换已完成（`docs/agents/workspace.yaml` 已建、`backendId: markdown`）。本票只收尾声明文件的一致性。
 
+## Comments
+
+### local — 2026-11-11T08:41:31.662Z
+载体清单落地、两条钉子改遍历清单、五组变异逐项验证；离线组 69/0。票面「两条同时红」一条按实测替代（单一漂移只该红对应那条），已在票面记明。
+
 ## 进度
 
-- 进度：100%（2026-11-11T16:40:00+08:00）：清单与两条钉子落地、指针与极性判据按评审重写、离线组 69/0、五组变异逐项验证；提交 7123808
+- 进度：100%（2026-11-11T16:41:31+08:00）：提交 6f4fe71 + 150110a；离线组 69/0；收口
+- 进度：100%（2026-11-11T16:40:00+08:00）：清单与两条钉子落地、指针与极性判据按评审重写、离线组 69/0、五组变异逐项验证；提交 6f4fe71
