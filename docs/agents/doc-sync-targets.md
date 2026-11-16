@@ -60,3 +60,33 @@
 事实 id 与钉子按上面的对应关系挂接。新增一条一致性判据时,这里登记一行,
 再让钉子用 `_sync_targets("<事实 id>")` 取载体。钉子拿不到载体、或拿到的比下限少,
 都会红 —— 扫了个空还显示绿是这份清单最不能出现的结果。
+
+## 数字类事实与重述额度
+
+**这一节治的是「同一个数字有六个出生地」。** 2026-11-11 实测：`productLineId` 的中文标签在
+README 与 ANSWER-SPEC 之间已经对不上（`1` 一处写「星空企业版/标准版」、一处写「企业版标准版」），
+而两份都自称权威。判据不是「对齐一次」，是**额度**：每项数字类事实在文档侧的出生地数上限登记在
+下面这张表里，由 `t_numeric_facts_single_home` 执行，超一处就红。
+
+额度不是零，是因为**装机侧的 agent 读不到仓库**：装机只带走技能那一个目录，`SKILL.md` 与
+`ANSWER-SPEC.md` 必须留下可执行的那一处，否则 agent 拿不到「上限是几」「87 是哪条线」。
+仓库根的两份（README / GLOSSARY）是维护者与 CLI 读者看的，额度更紧。
+
+| 事实 id | 唯一真源（声明键） | 文档侧额度（份） | 现行重述位置 |
+| --- | --- | --- | --- |
+| `maxKeywords` | `src/kd/contract.json` 的 `limits.maxKeywords` | 1 | `SKILL.md`（唯一一处正文说明，带指针） |
+| `productIds` | `src/kd/contract.json` 的 `productIds.names` | 3 | `README.md`（CLI 速查）/ `ANSWER-SPEC.md`（值→含义表）/ `SKILL.md`（产品线路由表） |
+| `truncatedValues` | `src/kd/contract.json` 的 `read.truncatedValues` | 2 | `ANSWER-SPEC.md`（反例节，既有钉子要求它在）/ `SKILL.md`（逐档行动表） |
+| `otherVisibility` | `src/kd/contract.json` 的 `search.note_otherSkipped` | 4 | `README.md`（`otherSkipped` 字段说明）/ `GLOSSARY.md`（other 档词条）/ `SKILL.md`（`--include-other` 触发条件）/ `ANSWER-SPEC.md`（判定信号） |
+
+两条纪律：
+
+1. **额度的分母是「份」不是「行」** —— 一份文档里写三遍和写一遍同罪，读者不会数第二遍；
+   但换一份文档就是换一个读者，所以要分开算。
+2. **降重述的写法只有两种**：指向声明键，或标「历史数字 / 旧口径」并说明现行值去哪看。
+   第三种只有一个：这一处就是那唯一一处正文说明 —— 它必须带指针，否则读者不知道权威在哪。
+
+⚠️ `linkPolicy` **不在本表**：它的判据比额度更强（载体表 + 按 kind 的极性比对 + 活指针），
+由 `t_link_policy_docs_in_sync` 执行，登记在本文件的「事实表」里，不在这里重复计一遍。
+⚠️ `otherVisibility` 目前**只有散文声明**（`search.note_otherSkipped` 解释「隐藏必须可见」），
+没有一个可执行的布尔键 —— 这是已知的洞，额度先按现状登记；把它提升成真正的声明键时本表同步收窄。

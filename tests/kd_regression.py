@@ -2727,6 +2727,8 @@ def t_link_policy_enforced_in_output():
 #   * **事实 id** —— 一条「必须与某个真源保持一致的事实」的短名,如 `link-policy`。
 #   * **钉子** —— 执行该事实一致性判据的那条回归用例(本仓既有说法,见 ADR-0016)。
 _SYNC_DOC = os.path.join(REPO, "docs", "agents", "doc-sync-targets.md")
+# 会话层的文档(装机单元里的 SKILL.md)。数字类事实的重述额度与指针存在性两条钉子都扫它。
+_DOC_SKILL = os.path.join(REPO, "skills", "kingdee-knowledge", "skills", "kingdee-knowledge", "SKILL.md")
 _CONTRACT_SOURCE = os.path.join(SRC, "kd", "contract.json")
 # 版本史/已废止段落里的提法**不是指针**:它们记录的是当时怎么写,不能代替
 # "现行政策去哪看"。判据要能区分这两件事,否则删掉指针也照样绿。
@@ -3166,6 +3168,137 @@ def t_doc_pointers_resolve():
     ok(checked >= 5,
        "只解析到 %d 条文件指针 —— 太少,可能是正则或豁免规则吃掉了一切导致的假绿" % checked)
 
+
+@case("offline: 数字类事实只有一个出生地(重述额度 + 产品线标签对着声明比)")
+def t_numeric_facts_single_home():
+    """**数字类事实的单一出生地钉子**(规格 US6/US7,票 04)。
+
+    病:同一个事实有六个出生地 —— 契约数字在 README、SKILL.md、ANSWER-SPEC、GLOSSARY 各抄一份,
+    而 `productLineId` 的中文标签在 README 与 ANSWER-SPEC 之间**已经对不上**(`1` 一处写
+    「星空企业版/标准版」、一处写「企业版标准版」),两份都自称权威。
+
+    两条判据合起来才拦得住:
+      ① **额度**:每项数字类事实在文档侧的出生地数,不得超过 `docs/agents/doc-sync-targets.md`
+         的「数字类事实与重述额度」表里登记的数。额度按**份**不按**行** —— 同一份文档里写三遍
+         和写一遍同罪,读者不会数第二遍;换一份文档就是换一个读者。
+      ② **一致**:凡文档把「产品线编号 + 中文标签」并列写出来,标签必须等于声明
+         `productIds.names` 的值。只有额度拦不住错标签 —— 抄一份错的,额度照样合规。
+
+    ⚠️ 额度表登记的声明键必须**真的能解析**到 `contract.json` 里:登记一个不存在的键,
+       等于指针指向空气,而三条断言都会绿。
+    ⚠️ 指针行(带 `contract.json`)与历史行(「当时 / 旧口径 / 已推翻」等)不算重述。
+    """
+    import re as _re
+
+    section = "数字类事实与重述额度"
+    txt = open(_SYNC_DOC, encoding="utf-8").read()
+    budgets, in_section = {}, False
+    for line in txt.split("\n"):
+        s = line.strip()
+        if not in_section:
+            if s.startswith("## ") and section in s:
+                in_section = True
+            continue
+        if s.startswith("## "):
+            break
+        if not s.startswith("|"):
+            continue
+        cells = [c.strip() for c in s.strip("|").split("|")]
+        if len(cells) < 3:
+            continue
+        try:
+            quota = int(cells[2])
+        except ValueError:
+            continue
+        found = _re.findall(r"[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+", cells[1])
+        ok(found,
+           "额度表里 %r 那一行没写出声明键路径(应形如 `limits.maxKeywords`)" % cells[0])
+        budgets[cells[0].strip("`")] = (found[-1], quota)
+    ok(budgets, "doc-sync-targets 的「%s」表一条都没解析到 —— 表被删了或格式变了" % section)
+
+    for fact in ("maxKeywords", "productIds", "truncatedValues"):
+        ok(fact in budgets,
+           "数字类事实 %r 没登记重述额度 —— 没登记就等于没有上限" % fact)
+
+    skill_dir = os.path.dirname(_DOC_SKILL)
+    docs = [os.path.join(REPO, "README.md"), os.path.join(REPO, "GLOSSARY.md"),
+            _DOC_SKILL, os.path.join(skill_dir, "ANSWER-SPEC.md"),
+            os.path.join(skill_dir, "CITATION-EVIDENCE.md")]
+    for path in docs:
+        ok(os.path.exists(path), "额度断言要扫的文档不存在: %s" % path)
+
+    def _product_pairs(line):
+        """把一行里「编号 = 中文标签」的并列写法解析出来(表格行与行内速查两种形态)。"""
+        pairs = []
+        m = _re.match(r"^\s*\|\s*`(93|87|1|2|0)`\s*\|\s*([^|]+?)\s*\|", line)
+        if m:
+            pairs.append((m.group(1), m.group(2)))
+        if ("产品线" in line or "--product" in line or "product_id" in line
+                or _re.match(r"^\s*(?:[-*]\s*)?(?:93|87|1|2|0)\s*=", line)):
+            pairs.extend(_re.findall(r"(93|87|1|2|0)\s*=\s*([^\s、,，;；\)）]+)", line))
+        return pairs
+
+    fact_rx = {
+        "maxKeywords": r"上限\s*[\(（]?\s*7|7\s*路|前\s*7\s*个|maxKeywords\s*=\s*7",
+        "truncatedValues": r"answer_limit|upstream_error",
+        "otherVisibility": r"默认隐藏",
+    }
+    names = _CONTRACT["productIds"]["names"]
+    wrong = []
+    counts = {}
+    for fact, (decl, quota) in sorted(budgets.items()):
+        node = _CONTRACT
+        for part in decl.split("."):
+            node = node.get(part) if isinstance(node, dict) else None
+            ok(node is not None,
+               "额度表把 %r 的唯一真源登记成 %r,而 contract.json 里没有这个键 —— "
+               "指针指向空气,三条断言全都会绿" % (fact, decl))
+        if node is None:
+            continue
+        hit_docs = []
+        for path in docs:
+            if not os.path.exists(path):
+                continue
+            for line in open(path, encoding="utf-8").read().split("\n"):
+                if "contract.json" in line or any(m in line for m in _CORRECTION_MARKS):
+                    continue
+                restated = False
+                if fact == "productIds":
+                    for num, label in _product_pairs(line):
+                        want = names.get(num)
+                        if want is None:
+                            continue
+                        restated = True
+                        # 只比标签**本体**:文档会在后面挂「(默认)」「(显式指定才生效)」这类说明,
+                        # 那些是解释而不是另一个标签。故两边都在第一个括号处截断,并去掉强调标记。
+                        poll = lambda s: s.replace("*", "").replace("`", "").strip()
+                        core = lambda s: poll(s).split("(")[0].split("（")[0].strip()
+                        if core(label) != core(want):
+                            wrong.append("%s 把 productIds.%s 写成 %r,声明是 %r"
+                                         % (os.path.relpath(path, REPO), num, poll(label), want))
+                elif fact in fact_rx:
+                    if "并发" in line and fact == "maxKeywords":
+                        continue          # 那是限速证据里的「7 路并发」,记的是另一个事实
+                    restated = bool(_re.search(fact_rx[fact], line))
+                if restated and path not in hit_docs:
+                    hit_docs.append(path)
+        counts[fact] = len(hit_docs)
+        ok(len(hit_docs) <= quota,
+           "%r 在文档侧有 %d 份重述,登记的额度是 %d 份 —— 它该只有一个出生地。"
+           "\n  重述位置: %s"
+           "\n  改法:指向声明键(如 `%s`),或标「历史数字 / 旧口径」并写清现行值去哪看。"
+           "\n  额度表:docs/agents/doc-sync-targets.md 的「%s」"
+           % (fact, len(hit_docs), quota,
+              "、".join(os.path.relpath(p, REPO) for p in hit_docs) or "(无)",
+              decl, section))
+
+    ok(not wrong,
+       "产品线编号与中文标签对不上声明(同一事实两个出生地,读者不知道信谁):\n  "
+       + "\n  ".join(wrong))
+    # 反向确认扫描有效:三份装机文档都在,额度不是 0 —— 否则这条是「扫了个空」的假绿。
+    ok(sum(counts.values()) >= 3,
+       "三项数字类事实加起来只数到 %d 份重述(%r)—— 太少,可能是扫描规则失效的假绿"
+       % (sum(counts.values()), counts))
 
 @case("offline: 内核不得生成任何检索词(ADR-0016 禁止清单源码扫描)")
 def t_no_decomposer_symbols():
