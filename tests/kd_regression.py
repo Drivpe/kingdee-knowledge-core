@@ -3213,6 +3213,117 @@ def t_doc_pointers_resolve():
        "去找,而它恰恰是在第 2 步卡住的。拆词是召回效果的主要变量(ADR-0016 之后全在调用方)。")
 
 
+
+@case("offline: 术语表只剩术语(版本史在 ADR 里;实现细节不得回流正文)")
+def t_glossary_is_terms_only():
+    """**术语表边界的钉子**(票 06,2026-11-16)。
+
+    `/domain-modeling` 的原话:`GLOSSARY.md` should be totally devoid of implementation
+    details. Do not treat it as a spec, a scratch pad, or a repository for implementation
+    decisions. 而本仓实际发生过两次越界:`docs/specs/2026-09-29-验收记录.md:266` 记过 M-3
+    (「越界承载实现细节:函数名、实测数字、钉子编号」),当时只把 6.8 段落改写了一遍,
+    冲突没解决;票 06 才把 6.4→6.9 的 52 行版本段搬进 ADR。
+
+    **为什么值得钉**:搬家本身没有可见信号。下一次「顺手记一笔变更」时,版本段会以完全
+    相同的形态长回来(它当初就是这么长出来的:每轮收尾往文件头追加一段),而没有任何
+    东西会红 —— 文件在盘上、`## Language` 还在、其他钉子全绿。
+
+    三条判据各自对应一种可复发的形态:
+      ① 首个 `##` 必须是 `## Language` —— 版本段只能长在它前面(历史形态),
+         所以「前面还有别的 `##`」就是它长回来的直接信号;
+      ② 版本段标题不得出现(`**版本 6.x` / `**v6.x 补记`)—— 同一条内容换个标题
+         写进正文时 ① 抓不到,这条抓;
+      ③ 每个版本必须有一条**活指针**指向 ADR,且目标真的在盘上 —— 治另一个方向:
+         版本史被删掉了,但没人知道去哪查。判据是"指针目标存在",不是"字符串出现过"
+         (同 `t_doc_pointers_resolve` 的 ①)。
+
+    ⚠️ **本钉子不查实现细节**,与票面「抽查词条不含函数名与实测数字」那一条明确分工:
+    那样的断言只能靠关键词表,而关键词表既抓不全(换个名字就逃)又会误伤 —— 全表还有
+    历史词条刻意保留着已删机制的旧名(如「chunk 切片」解释 `_chunk_text` 当初干什么),
+    那是**废止记录**不是实现细节,按 /domain-modeling 的 avoid list 它有价值。
+    故可执行的那一半(版本史不得回流)在这里,不可执行的那一半(措辞)靠评审与票面抽查。
+    """
+    import re as _re
+
+    txt = open(os.path.join(REPO, "GLOSSARY.md"), encoding="utf-8").read()
+    lines = txt.split("\n")
+
+    # ① `## Language` 必须是**唯一**的 `##` —— 不是"第一个"就够。
+    #    ⚠️ **2026-11-16 评审抓到的假绿(已修)**:初版写的是"第一个 `##` 必须是它",
+    #    于是把版本段**追加到 `## Language` 之后**、或插成 `### 版本 6.10`(三级标题,
+    #    `startswith("## ")` 不匹配)两种形态**全绿**。而"追加到文件末尾"正是最容易发生的
+    #    那一种:每轮收尾往文件尾追一段,比往文件头插一段更自然。
+    #    判据改成"二级标题**只有一个**,且是 `## Language`",两个方向都堵上。
+    #    三级/四级标题**合法**:术语表用 `**词条**` 作条目,但将来若有人补子节也应当允许,
+    #    故只约束二级 —— 与"版本段只长在二级"的历史形态一致。
+    tops = [(i, ln) for i, ln in enumerate(lines, 1) if ln.startswith("## ")]
+    ok(tops, "GLOSSARY.md 里没有 `## ` 二级标题 —— 这条钉子在扫空气")
+    ok(len(tops) == 1 and tops[0][1].strip() == "## Language",
+       "GLOSSARY.md 的二级标题有 %d 个,应为**恰好一个** `## Language`:\n  %s\n"
+       "术语表的前 52 行曾是 6.4→6.9 的版本变更史(票 06 已搬进 docs/adr/)。"
+       "若上面某一节是**新长回来的变更史**,请让它进 ADR;"
+       "若它是术语表该有的分区,请说明为什么非要用二级标题。"
+       % (len(tops), "\n  ".join("%d: %s" % t for t in tops[:5])))
+
+    # ② 版本段标题不得出现 —— 不限版本号、不限行首形态。
+    #    ⚠️ **同一次评审抓到的假绿(已修)**:初版正则写死 `^\*\*(版本 ?v?6\.\d|v6\.\d 补记)`,
+    #    于是 `**版本 7.0**`、`- **版本 6.10**`(列表项)、以及不带 `**` 的裸散文版本段
+    #    全都逃过。判据改成"行内出现『版本 X.Y』或『vX.Y 补记』且该行带 `**`",
+    #    版本号不设上限 —— 下一个人写的会是 7.x/8.x,写死 6.x 等于只防住历史。
+    #    排除项只有一处:`_Avoid_` 行(词条的一部分,不是段标题)。
+    _ver_re = _re.compile(r"版本\s*v?[0-9]+\.[0-9]+|v[0-9]+\.[0-9]+\s*补记")
+    ver_head = []
+    for i, ln in enumerate(lines, 1):
+        if ln.lstrip().startswith("_Avoid_"):
+            continue
+        #    判据是"版本号 + **标题形态**":标题(任意级 `#`)或粗体(`**`)。
+        #    ⚠️ **评审第二轮又抓到一个假绿**:`### 版本 6.10` 既不是 `## `(① 不匹配),
+        #    也没有 `**`(初版 ② 不匹配) —— 两头都漏。故标题形态按"以 # 开头"单独认一次。
+        looks_like_head = ln.lstrip().startswith("#") or "**" in ln
+        if _ver_re.search(ln) and looks_like_head:
+            ver_head.append("%d: %s" % (i, ln.strip()[:80]))
+    ok(not ver_head,
+       "GLOSSARY.md 里出现了版本段标题 —— 版本变更史住在 ADR 里(正本索引见文件开头"
+       "那张表),不要往术语表里再写一遍:\n  " + "\n  ".join(ver_head[:5]))
+    # 反向确认:判据真的能抓到那三种曾经假绿的形态(否则等于把判据关掉)。
+    for probe, want in (("**版本 7.0(2027-01-01)**:新东西", True),
+                        ("- **版本 6.10**:列表项形态", True),
+                        ("**v7.2 补记(2027-02-02)**:补记形态", True),
+                        ("### 版本 6.10", True),
+                        ("**检索内核**:这条是正常词条", False),
+                        ("这里提到版本 6.9 的那个字段", False)):
+        got = bool(_ver_re.search(probe)) and (probe.lstrip().startswith("#") or "**" in probe)
+        ok(got == want, "反向确认失败:判据对 %r 判定为 %s,应为 %s(判据失效或过宽)"
+           % (probe, got, want))
+
+    # ③ 每个版本必须有一条**活的**指针指向 ADR,且目标真的在盘上。
+    #    ⚠️ **同一次评审抓到的假绿(已修)**:初版是 `target[0] in txt and ver in txt` ——
+    #    纯子串存在性,**不要求同行同段**。于是把 ADR 文件名与版本号分别留在文件两头、
+    #    中间隔着几段无关正文,判据照样绿 —— 而读者顺着"6.9"找过去,那一行并没有说
+    #    去哪看。docstring 自称"指针目标存在、不是字符串出现过",实现却退回了字符串判据。
+    #    同仓 `t_link_policy_docs_in_sync` 的"活指针"写法已经做对了这件事(同一行既有
+    #    键名又有真源名、且不在版本史段落),这里沿用同一形态:
+    #    **同一行里既有版本号又有该 ADR 的文件名**,且该行的目标文件真的在盘上。
+    adr_dir = os.path.join(REPO, "docs", "adr")
+    adrs = sorted(f for f in os.listdir(adr_dir) if f.endswith(".md"))
+    for ver, num in (("6.4", "0014"), ("6.5", "0015"), ("6.6", "0016"),
+                     ("6.7", "0017"), ("6.8", "0020"), ("6.9", "0019"),
+                     ("v6.9 补记", "0018")):
+        target = [f for f in adrs if f.startswith(num + "-")]
+        ok(target, "docs/adr/ 里没有 %s- 开头的 ADR —— 术语表的版本索引指向空气" % num)
+        if not target:
+            continue
+        ok(os.path.exists(os.path.join(adr_dir, target[0])),
+           "术语表指向 `docs/adr/%s`,而该文件不在盘上 —— 指针指向空气" % target[0])
+        live = [(i, ln) for i, ln in enumerate(lines, 1)
+                if ver in ln and target[0] in ln]
+        ok(live,
+           "术语表里没有指向 ADR-%s 的**活指针**(版本 %s)—— 判据是**同一行**里既有"
+           "版本 %s 又有 `%s`。把文件名与版本号分别留在文件两头不算指针:读者顺着版本号"
+           "找过去,那一行并没有告诉他去哪看。版本史搬进 ADR 之后,读者必须还能从术语表"
+           "找到正本,否则等于搬丢了。" % (num, ver, ver, target[0]))
+
+
 @case("offline: 数字类事实只有一个出生地(重述额度 + 数字/标签对着声明比)")
 def t_numeric_facts_single_home():
     """**数字类事实的单一出生地钉子**(规格 US6/US7,票 04)。
