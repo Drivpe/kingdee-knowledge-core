@@ -225,7 +225,7 @@ def build_parser():
                         "超过上限(默认 %d 词)按顺序取前 N 个,返回体写明 keywordsDropped"
                         % _IMPL.max_keywords())
     s.add_argument("--product", type=int, default=None,
-                   help="93=星空旗舰版(默认) 87=苍穹 1=企业版/标准版 2=星空侧二开问答专区 "
+                   help="93=星空旗舰版(默认) 87=苍穹 1=星空企业版/标准版 2=星空侧二开问答专区 "
                         "0=不过滤(显式指定才生效)。产品线由你判定;不传即默认,内核不做字面推导")
     s.add_argument("--global", dest="global_", action="store_true", help="跨全部产品")
     s.add_argument("--include-other", dest="include_other", action="store_true",

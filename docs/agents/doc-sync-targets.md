@@ -74,7 +74,7 @@ README 与 ANSWER-SPEC 之间已经对不上（`1` 一处写「星空企业版/�
 
 | 事实 id | 唯一真源（声明键） | 文档侧额度（份） | 现行重述位置 |
 | --- | --- | --- | --- |
-| `maxKeywords` | `src/kd/contract.json` 的 `limits.maxKeywords` | 1 | `SKILL.md`（唯一一处正文说明，带指针） |
+| `maxKeywords` | `src/kd/contract.json` 的 `limits.maxKeywords` | 1 | `SKILL.md` 的「收词上限」那一段（说明行带数字，指针在相邻行；计数按文档份） |
 | `productIds` | `src/kd/contract.json` 的 `productIds.names` | 3 | `README.md`（CLI 速查）/ `ANSWER-SPEC.md`（值→含义表）/ `SKILL.md`（产品线路由表） |
 | `truncatedValues` | `src/kd/contract.json` 的 `read.truncatedValues` | 2 | `ANSWER-SPEC.md`（反例节，既有钉子要求它在）/ `SKILL.md`（逐档行动表） |
 | `otherVisibility` | `src/kd/contract.json` 的 `search.note_otherSkipped` | 4 | `README.md`（`otherSkipped` 字段说明）/ `GLOSSARY.md`（other 档词条）/ `SKILL.md`（`--include-other` 触发条件）/ `ANSWER-SPEC.md`（判定信号） |
