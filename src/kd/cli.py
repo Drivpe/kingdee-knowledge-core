@@ -190,7 +190,7 @@ def build_parser():
         description="金蝶官方知识 CLI(匿名免费:零账号/零点数/零模型)。AI-first:默认输出 JSON,"
                     "stdout=数据 stderr=进度。检索收敛为一条路径(ADR-0013):"
                     "kd search 出多路清单(只给标题级信息)→ 你按标题匹配度挑 → kd read 取全文 →"
-                    " 你按 docs/ANSWER-SPEC.md 合成回答。"
+                    " 你按技能目录里的 ANSWER-SPEC.md 合成回答。"
                     "本套件只产清单/全文、不合成回答(ADR-0008)——排序由上游综合排序决定,"
                     "内核只去重,不产生任何评分。"
                     "⚠️ 内核**不拆词**(ADR-0016):你必须先按 SKILL.md 的拆词规范把问题拆成"

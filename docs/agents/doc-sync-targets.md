@@ -16,7 +16,7 @@
 
 | 载体名 | 相对路径 | 必须与唯一真源一致的事实 |
 | --- | --- | --- |
-| `ANSWER-SPEC` | `docs/ANSWER-SPEC.md` | `link-policy`, `retired-mechanisms` |
+| `ANSWER-SPEC` | `skills/kingdee-knowledge/skills/kingdee-knowledge/ANSWER-SPEC.md` | `link-policy`, `retired-mechanisms` |
 | `SKILL.md` | `skills/kingdee-knowledge/skills/kingdee-knowledge/SKILL.md` | `link-policy`, `retired-mechanisms` |
 | `README` | `README.md` | `link-policy`, `link-policy-pointer`, `retired-mechanisms` |
 | `GLOSSARY.md` | `GLOSSARY.md` | `link-policy`, `link-policy-pointer`, `retired-mechanisms` |

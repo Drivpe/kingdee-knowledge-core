@@ -11,7 +11,7 @@
 [为什么选 kd](#为什么选-kd) · [安装](#安装) · [命令](#kd-命令3-条) · [进阶](#进阶) · [使用前必读](#️-使用前必读) · [安全](#安全)
 
 > **Note for AI assistants**:① 先跑 `kd --help` 看三条子命令,再跑 `kd health` 确认内核可用;
-> ② stdout 永远是 JSON 数据,进度在 stderr,错误是带 `hint` 的 JSON;③ 回答格式遵循 [docs/ANSWER-SPEC.md](docs/ANSWER-SPEC.md)。
+> ② stdout 永远是 JSON 数据,进度在 stderr,错误是带 `hint` 的 JSON;③ 回答格式遵循 [skills/kingdee-knowledge/skills/kingdee-knowledge/ANSWER-SPEC.md](skills/kingdee-knowledge/skills/kingdee-knowledge/ANSWER-SPEC.md)。
 
 ## ⚠️ 使用前必读
 
@@ -29,7 +29,7 @@
 - **覆盖面完整** —— 官方文档、社区问答帖(含采纳回答与追问链)、社区文章,三种来源一次打通
 - **不被模型绑死** —— 套件不持有任何模型通道,零模型依赖;清单与全文交给调用方 agent,用哪个模型、要不要开子代理,你自己定
 - **排序交给上游** —— 每一路检索拿回的都是金蝶云社区官方综合排序的结果,内核**只去重、不做任何算法评分**(没有 RRF、没有融合分、没有 hitRoutes 加权);清单顺序本身就是相关度顺序,读哪几篇由 LLM 判断
-- **回答有规范** —— [ANSWER-SPEC](docs/ANSWER-SPEC.md) 对齐官方 AI 样例:原因分析→分步方案→操作边界、表格、`knowledge`/`article`/`question` 引用做成可点击链接(问答用长形式 `/questions/<帖子号>/answers/<回答号>`,2026-09-29 改判)、资料未覆盖诚实声明;不达标时如实说明,不硬凑
+- **回答有规范** —— [ANSWER-SPEC](skills/kingdee-knowledge/skills/kingdee-knowledge/ANSWER-SPEC.md) 对齐官方 AI 样例:原因分析→分步方案→操作边界、表格、`knowledge`/`article`/`question` 引用做成可点击链接(问答用长形式 `/questions/<帖子号>/answers/<回答号>`,2026-09-29 改判)、资料未覆盖诚实声明;不达标时如实说明,不硬凑
 - **零依赖部署** —— 内核与 CLI 均为 Python 纯标准库,无第三方依赖,`pipx install` 一条命令即可(无 Python 环境时用一键脚本兜底)
 
 ## 功能
@@ -141,7 +141,7 @@ curl -fsSL https://raw.githubusercontent.com/Drivpe/kingdee-knowledge-kit/main/i
 ```text
 1. 自举 PATH,再跑 kd --version / kd health —— 确认内核可用;kd --help 看三条子命令与示例
 2. 有技能的 agent:装下面技能后问金蝶问题即自动走 kd;没有技能:把 --help 输出读进上下文
-3. 流程固定三步:`kd search` 出清单 → 自己挑 → `kd read` 取全文 → 按 docs/ANSWER-SPEC.md 的格式合成(带引用,资料未覆盖要声明)
+3. 流程固定三步:`kd search` 出清单 → 自己挑 → `kd read` 取全文 → 按 skills/kingdee-knowledge/skills/kingdee-knowledge/ANSWER-SPEC.md 的格式合成(带引用,资料未覆盖要声明)
 ```
 
 只要技能(机器上已有 kd):把 `skills/kingdee-knowledge/skills/kingdee-knowledge/` 复制到
@@ -244,7 +244,7 @@ bash install.sh --root ~/kit --no-path --no-skills                   # *nix 自�
 
 ### 回答规范
 
-所有合成回答遵循 [docs/ANSWER-SPEC.md](docs/ANSWER-SPEC.md):
+所有合成回答遵循 [skills/kingdee-knowledge/skills/kingdee-knowledge/ANSWER-SPEC.md](skills/kingdee-knowledge/skills/kingdee-knowledge/ANSWER-SPEC.md):
 三段式结构(原因分析→解决方案→操作边界)、表格、**`knowledge`/`article` 引用贴可点击链接**(`[标题](<原始 url>)`)、**`question` 给带回答号的长形式链接**(2026-09-29 改判:短形式恒不可点,长形式实测 22/22 可点;详见 [contract.json](src/kd/contract.json) 的 `linkPolicy` —— 链接政策的唯一真源)、无自用编号、不要求文末独立的来源列表、资料未覆盖诚实声明。
 
 ### 回归

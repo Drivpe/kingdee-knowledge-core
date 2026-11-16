@@ -3055,7 +3055,8 @@ def t_answer_spec_diagnostics_wording():
     现在候选集改为 `top_keys() ∪ result_keys() ∪ 各类型专属键 ∪ read 声明键`,
     并对"四个标记都必须在候选集里"做完整性自检 —— 于是判据的完整性本身也受声明约束。
     """
-    spec = os.path.join(REPO, "docs", "ANSWER-SPEC.md")
+    spec = os.path.join(REPO, "skills", "kingdee-knowledge", "skills",
+                        "kingdee-knowledge", "ANSWER-SPEC.md")
     ok(os.path.exists(spec), "ANSWER-SPEC 不存在: %s" % spec)
     txt = open(spec, encoding="utf-8").read()
 
@@ -3114,6 +3115,56 @@ def t_answer_spec_diagnostics_wording():
     # ④ 反向确认扫描有效:文档里确有这句话(而不是因为整个文件为空而"通过")。
     ok(len(txt) > 1000,
        "ANSWER-SPEC 内容过短(%d 字节),本条断言可能是『扫了个空』的假绿" % len(txt))
+
+
+@case("offline: 文档里的文件指针必须指向真实存在的文件(指针目标存在,不是字符串出现过)")
+def t_doc_pointers_resolve():
+    """**文档指针的存在性钉子**(规格 US19,票 03)。
+
+    US19 要的是「断言检查**指针目标存在**,而不是字符串出现过」。两种反面形态都已实际发生:
+
+      * `CONTEXT.md` 改名 `GLOSSARY.md` 之后,用例仍读旧路径 —— 改名打断的是守卫,
+        而不是它要守的一致性;
+      * `SKILL.md` 指向 `docs/ANSWER-SPEC.md`,而装机脚本只 `cp -r` 技能目录,`docs/`
+        不在拷贝范围 —— 指针字符串从没写错,读者照它走过去却是空的(本机实测:
+        `~/.agents/skills/` 目录根本不存在,所以这个断链从未被任何东西发现)。
+
+    判据因此是**解析后存在**,不是 grep 到了。扫描范围是两层人写的文档:`AGENTS.md`
+    (常驻层)与技能目录里的 `SKILL.md`(会话层);reference 层不在本钉子范围。
+    解析顺序:先按被扫文件自身目录,再按仓库根。
+
+    ⚠️ 三类 token **不是**仓库内文件指针,一律跳过:模板占位(`<feature>` 这类尖括号)、
+    家目录与绝对路径(`~/…`、`/…`)、URL。少了这些豁免,断言会把「文件放哪」的说明
+    误判成断链,而那正是把守卫变成噪音的经典形态。
+    """
+    import re as _re
+    docs = [os.path.join(REPO, "AGENTS.md"),
+            os.path.join(REPO, "skills", "kingdee-knowledge", "skills",
+                         "kingdee-knowledge", "SKILL.md")]
+    ptr = _re.compile(r"`([^`\n]+?\.md)`")
+    checked, dead = 0, []
+    for path in docs:
+        ok(os.path.exists(path), "本条要扫的文档不存在: %s" % path)
+        if not os.path.exists(path):
+            continue
+        base = os.path.dirname(path)
+        for m in ptr.finditer(open(path, encoding="utf-8").read()):
+            token = m.group(1).strip()
+            if any(c in token for c in "<>{}$*"):
+                continue
+            if token.startswith(("~", "/", "http")) or " " in token:
+                continue
+            checked += 1
+            if not (os.path.exists(os.path.join(base, token))
+                    or os.path.exists(os.path.join(REPO, token))):
+                dead.append("%s → %s" % (os.path.relpath(path, REPO), token))
+    ok(not dead,
+       "文档里这些文件指针**指向不存在的文件**(读者照指针走过去是空的):\n  "
+       + "\n  ".join(dead)
+       + "\n若该文件确实搬家了,同批改掉指针;若客户端要读它,把文件放进技能目录"
+       "(装机只拷那一个目录),而不是往 `docs/` 指。")
+    ok(checked >= 5,
+       "只解析到 %d 条文件指针 —— 太少,可能是正则或豁免规则吃掉了一切导致的假绿" % checked)
 
 
 @case("offline: 内核不得生成任何检索词(ADR-0016 禁止清单源码扫描)")
@@ -4499,7 +4550,8 @@ def t_selection_rule_in_docs():
     """
     skill = open(os.path.join(REPO, "skills", "kingdee-knowledge", "skills",
                               "kingdee-knowledge", "SKILL.md"), encoding="utf-8").read()
-    spec = open(os.path.join(REPO, "docs", "ANSWER-SPEC.md"), encoding="utf-8").read()
+    spec = open(os.path.join(REPO, "skills", "kingdee-knowledge", "skills",
+                            "kingdee-knowledge", "ANSWER-SPEC.md"), encoding="utf-8").read()
     adr = os.path.join(REPO, "docs", "adr", "0015-挑选判据归属.md")
     ok(os.path.exists(adr), "缺 ADR-0015 —— 挑选判据的边界没有决策记录")
 

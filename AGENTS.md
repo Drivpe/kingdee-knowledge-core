@@ -4,7 +4,7 @@
 
 ### Issue tracker
 
-本地 markdown:票与规格是 `.scratch/<feature>/` 下的文件(`spec.md` + `issues/<NN>-<slug>.md`),一个目录一套。
+本地 markdown:票与规格是 `.scratch/<feature>/spec.md` 与 `.scratch/<feature>/issues/<NN>-<slug>.md`,一个目录一套。
 See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
