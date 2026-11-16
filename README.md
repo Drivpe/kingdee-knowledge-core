@@ -66,7 +66,7 @@
 > v6.2:合成权移交调用方(ADR-0008)——`kd ai` 删除、`KAI_*` 环境变量废除,套件零模型依赖;原句作为独立检索路参与 RRF(ADR-0009);召回置信度用三档枚举(ADR-0010)。
 > v6.0:彻底在线(ADR-0005)——查询时多路检索为主轴,corpus 预爬语料废除;
 > v5.0:grep 语料路线定案(corpus+rg 接管检索角色,向量降级待墙),见 `docs/adr/0004`;
-> v4.0 评测结论:信号重排、同义词变体被评测否决(recall 反降/无增益),默认关或移除,详见 `docs/eval-report-v4.md` 与 `docs/adr/0003`。
+> v4.0 评测结论:信号重排、同义词变体被评测否决(recall 反降/无增益),默认关或移除;支撑该结论的评测体系已随去服务化整体删除(ADR-0011),结论档案不入库、取回走 git 历史,决策见 `docs/adr/0003`。
 
 ## 安装
 
@@ -125,8 +125,21 @@ curl -fsSL https://raw.githubusercontent.com/Drivpe/kingdee-knowledge-kit/main/i
 
 ### ③ AI Agent 三步接入(已有 kd 的机器)
 
+> ⚠️ **装完第一件事是自举 PATH。** `install.sh` / `install.ps1` 把 PATH 写进 shell 的
+> 交互启动文件(`~/.bashrc` / `~/.zshrc` / 用户环境变量),而 **agent 跑的是非交互 shell
+> —— 这些文件根本不被读取**。于是"装好了、人也能用,agent 敲 `kd` 却报
+> `command not found`"。这不是装坏了,是 PATH 没带过去:
+>
+> ```bash
+> export PATH="$HOME/.local/bin:$HOME/.kingdee-kit/bin:$PATH"; kd --version
+> ```
+>
+> 这条命令自己前置两个落点(pipx 的 `~/.local/bin` 与一键脚本的 `~/.kingdee-kit/bin`),
+> 不依赖任何 rc 文件,bash / zsh / sh 通用。回显版本号即成功,同一 shell 内后续照常写 `kd`。
+> 技能正文的「kd 的定位」小节已把它写成**每个任务的第一步**,agent 读技能即照做。
+
 ```text
-1. 跑 kd health —— 确认内核可用;kd --help 看三条子命令与示例
+1. 自举 PATH,再跑 kd --version / kd health —— 确认内核可用;kd --help 看三条子命令与示例
 2. 有技能的 agent:装下面技能后问金蝶问题即自动走 kd;没有技能:把 --help 输出读进上下文
 3. 流程固定三步:`kd search` 出清单 → 自己挑 → `kd read` 取全文 → 按 docs/ANSWER-SPEC.md 的格式合成(带引用,资料未覆盖要声明)
 ```
