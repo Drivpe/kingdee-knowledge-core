@@ -31,8 +31,20 @@ tmp_*
 kd_*.json
 *.bak
 
-# ===== 工作管理工件(会话级,不入库) =====
-.scratch/
+# ===== 工作管理工件 =====
+# 票面入库,原料不入库。判据与同机其他仓一致:**人写的文字进去,工具 dump 的字节出来**
+# (spec.md / map.md / issues/*.md 入库;取证原始数据、一次性计划与施工报告不入库)。
+# 整目录排除会让票本身也不进 git —— 那是"翻篇"的内容没有版本,改坏无从回滚。
+.scratch/*
+!/.scratch/*/
+.scratch/*/*
+!/.scratch/*/spec.md
+!/.scratch/*/map.md
+!/.scratch/*/issues/
+.scratch/*/issues/*
+!/.scratch/*/issues/*.md
+# 插件写盘用的探针与本地缓存
+.scratch/.dsh-write-probe
 
 # ===== 临时产物(会话级,可再生,不入库) =====
 __p.json

@@ -330,8 +330,13 @@ Write-Host "  kd search --kw ""信用额度控制"" --product 93   # 出清单(�
 Write-Host "  kd search --kw ""信用额度"" --kw ""应收单 信用""   # 拆好词按序传入:每个 --kw 一路,内核不再自行拆词"
 Write-Host "  kd read <id> --kind question             # 取全文,kind 照抄 search 结果的 type"
 Write-Host ""
+Write-Host "⚠️ 给 AI agent 用(或任何非交互 shell)时先自举 PATH —— 上面写进用户 PATH 的值," -ForegroundColor Yellow
+Write-Host "   已启动的进程读不到;Git Bash / WSL 侧的 agent 也未必继承 Windows 的 PATH:" -ForegroundColor Yellow
+Write-Host '     export PATH="$HOME/.local/bin:$HOME/.kingdee-kit/bin:$PATH"; kd --version'
+Write-Host "   (技能正文的「kd 的定位」小节已内置这一步,agent 读技能即照做。)"
+Write-Host ""
 Write-Host "本套件不合成回答(ADR-0008,零模型依赖):kd search 只出清单,挑中的条目用 kd read 取全文,"
-Write-Host "再由你按 docs/ANSWER-SPEC.md 自己合成。排序由上游综合排序决定,内核只去重、零评分。"
+Write-Host "再由你按技能目录里的 ANSWER-SPEC.md 自己合成(与 SKILL.md 同级)。排序由上游综合排序决定,内核只去重、零评分。"
 Write-Host ""
 Write-Host "技能实体在 ~\.agents\skills\kingdee-knowledge(通用兼容,Codex/Claude Code/opencode 直接读取)," -ForegroundColor Green
 Write-Host "WorkBuddy/ZCode/pi 目录已用 junction 挂到同一份——升级重跑本脚本一次即全家生效。" -ForegroundColor Green

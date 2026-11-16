@@ -53,18 +53,38 @@ ADR-0011 去服务化后,本地落盘缓存(landing / corpus / sqlite)与发版�
   文档**零命中**;默认 93 后直接命中官方条目。默认值得以存在,是因为不带过滤的召回质量
   在中文语料上显著更差。
 
-## kd 的定位(三级回退)
+## kd 的定位(第一步永远是自举 PATH)
 
-1. PATH 里的 `kd`(pipx 装到 `~/.local/bin`;Git Bash 下裸名走无扩展名 shim;cmd/PowerShell 走 kd.cmd)
-2. 一键脚本兜底路径:Windows `%USERPROFILE%\.kingdee-kit\bin\kd.cmd`;
-   Linux/macOS `~/.kingdee-kit/bin/kd`
-3. 都没有 → **自己转用仓库启动器,不要停下来让用户去装**:
+**每个金蝶任务的第一步是这条自举命令。** 直接敲 `kd` 会得到 `command not found`,
+而那**不等于**"机器上没装 kd"——是 PATH 没带过来:
+
+```bash
+export PATH="$HOME/.local/bin:$HOME/.kingdee-kit/bin:$PATH"; command -v kd && kd --version
+```
+
+- `~/.local/bin` 是 pipx 落点,`~/.kingdee-kit/bin` 是一键脚本落点;
+- **agent 跑的是非交互 shell**,而 `install.sh` 把 PATH 写进 `~/.bashrc` / `~/.zshrc`
+  —— 这两个文件**只在交互 shell 生效**,非交互 shell 根本不读它们。
+  所以新机器上"装好了但 agent 看不见"是常态,不是环境损坏;
+- 上面这条命令自己把两个落点前置,**不依赖任何 rc 文件**,bash / zsh / sh 下均可用;
+- 回显版本号(如 `kd 6.9(library mode)`)即自举成功,**后续命令照常写 `kd`**
+  (同一 shell 内 PATH 已生效)。
+
+Windows:Git Bash 用上面同一条;cmd / PowerShell 自举后走 `kd.cmd`。
+
+### 自举失败才往下走
+
+1. **绝对路径直调** —— 实测非交互 shell 下**不受 PATH 影响**,该通就通:
+   - Linux/macOS:`~/.kingdee-kit/bin/kd --version`
+   - Git Bash:`"$USERPROFILE/.kingdee-kit/bin/kd" --version`
+   - cmd/PowerShell:`"%USERPROFILE%\.kingdee-kit\bin\kd.cmd" --version`
+2. **仓库启动器**(两处都没有 = 机器上确实没装):
    `python3 <仓库>/src/kd_run.py search --kw "问题" --product 93`
    它自建 `sys.path` bootstrap,无需 PYTHONPATH,与装好的 `kd` 行为等价。仓库位置按序找:
    当前工作目录 → `kingdee-knowledge-kit` 的常见检出位置;找不到再问用户。
    **在此之前不要编造任何金蝶知识内容。**
-   (注:机器上可能没装 pipx、`~/.kingdee-kit` 也可能不存在——第 1、2 级落空是常态,
-   走第 3 级即可,不要因此判定环境损坏。)
+
+想给这台机器装上第 1 级:见仓库 README 的「安装」(pipx 一行,或 `install.sh` 一键)。
 
 能力清单:`kd --help`(三条子命令与示例)与 `kd health`(内核版本/公开面/预算上限)
 

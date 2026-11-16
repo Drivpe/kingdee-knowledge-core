@@ -146,18 +146,39 @@ cd "$DIR" && exec python3 ./kd.py "$@"
 SHEOF
 chmod +x "$ROOT/bin/kd" "$ROOT/bin/kd.py"
 
-# 2. PATH(bin 加入 shell rc,幂等)
+# 2. PATH(幂等)。各类 shell **实际**会读哪些启动文件(实测,别再照常识猜):
+#      bash -c  (非交互; agent 跑的就是这个)  → **一个都不读**,只认 $BASH_ENV
+#      bash -i  (交互)                        → ~/.bashrc
+#      bash -l  (登录)                        → ~/.bash_profile → ~/.bash_login → ~/.profile(首个存在者)
+#      zsh  -c  (非交互)                      → ~/.zshenv
+#      zsh  -i  (交互)                        → ~/.zshenv + ~/.zshrc
+#    由此两条结论:
+#      * rc 文件**永远覆盖不到 `bash -c`** —— 无论往哪份里写。这是"装好了但 agent 敲 kd 报
+#        command not found"的机制性原因(bash 型 agent 无法靠 rc 解决)。
+#      * `~/.zshenv` 是 zsh 侧**唯一在所有模式都读**的文件(也正因如此它才适合承担这个角色),
+#        故对「zsh 启动 → 派生子进程」的链路(zsh 交互终端、乃至 zsh 里起的 DSH)确实有效。
+#    两者互补:这里写 rc 覆盖交互与 zsh 链路,**agent 的通用解是技能正文里那句自举命令**
+#    (见下方装机结尾的提示与 skills/…/SKILL.md 的「kd 的定位」)。
 if [ "$NO_PATH" -eq 0 ]; then
   case ":$PATH:" in
     *":$ROOT/bin:"*) echo "[install] PATH 已包含 $ROOT/bin(跳过)";;
     *)
+      # 交互 shell 的启动文件:只追加到**已存在**的,不替用户新建。
       for rc in "$HOME/.bashrc" "$HOME/.zshrc"; do
         [ -f "$rc" ] || continue
         if ! grep -q "kingdee-kit" "$rc" 2>/dev/null; then
           printf '\nexport PATH="$PATH:%s/bin"\n' "$ROOT" >> "$rc"
-          echo "[install] 已写入 $rc(新终端生效)"
+          echo "[install] 已写入 $rc(交互终端需新开窗口)"
         fi
       done
+      # zsh 专属:唯一非交互也读的启动文件,故可为 zsh 链路兜住 PATH。
+      # 仅在装了 zsh 时才落,避免在纯 bash 机器上留一个没人读的死文件。
+      if command -v zsh >/dev/null 2>&1; then
+        if ! grep -q "kingdee-kit" "$HOME/.zshenv" 2>/dev/null; then
+          printf '\nexport PATH="$PATH:%s/bin"\n' "$ROOT" >> "$HOME/.zshenv"
+          echo "[install] 已写入 ~/.zshenv(zsh 全部模式均读,含非交互)"
+        fi
+      fi
       ;;
   esac
 fi
@@ -245,5 +266,11 @@ echo "  kd search --kw \"信用额度控制\" --product 93   # 出清单(标题�
 echo "  kd search --kw \"信用额度\" --kw \"应收单 信用\"   # 拆好词按序传入:每个 --kw 一路,内核不再自行拆词"
 echo "  kd read <id> --kind question             # 取全文,kind 照抄 search 结果的 type"
 echo ""
+echo "⚠️ 给 AI agent 用(或任何非交互 shell)时,先自举 PATH —— 上面写进 ~/.bashrc"
+echo "   / ~/.zshrc 的导出**只在交互 shell 生效**,agent 的非交互 shell 读不到,"
+echo "   直接敲 kd 会得到 command not found:"
+echo "     export PATH=\"\$HOME/.local/bin:\$HOME/.kingdee-kit/bin:\$PATH\"; kd --version"
+echo "   (技能正文的「kd 的定位」小节已内置这一步,agent 读技能即照做。)"
+echo ""
 echo "本套件不合成回答(ADR-0008,零模型依赖):kd search 只出清单,挑中的条目用 kd read 取全文,"
-echo "再由你按 docs/ANSWER-SPEC.md 自己合成。排序由上游综合排序决定,内核只去重、零评分。"
+echo "再由你按技能目录里的 ANSWER-SPEC.md 自己合成(与 SKILL.md 同级)。排序由上游综合排序决定,内核只去重、零评分。"
