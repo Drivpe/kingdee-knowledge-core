@@ -178,7 +178,7 @@ def cmd_health(_a):
         "note": "单入口检索(ADR-0013,2026-09-18):kd ask 已删除,search 是唯一检索入口"
                 "(多路关键词 + 只出标题清单 + 零排序评分),要全文走 kd read。"
                 "⚠️ v6.6(ADR-0016):内核**不再生成任何检索词** —— 检索词只来自调用方"
-                "(--kw),内核原样按序发送;拆词规范见 SKILL.md。"
+                "(--kw),内核原样按序发送;拆词规范见技能目录的 WORD-SPLITTING.md。"
                 "去服务化(工单 #20):kd 进程内直连 kd.core,不依赖 127.0.0.1:4097,"
                 "不读 KSEARCH_URL。",
     })
@@ -193,7 +193,7 @@ def build_parser():
                     " 你按技能目录里的 ANSWER-SPEC.md 合成回答。"
                     "本套件只产清单/全文、不合成回答(ADR-0008)——排序由上游综合排序决定,"
                     "内核只去重,不产生任何评分。"
-                    "⚠️ 内核**不拆词**(ADR-0016):你必须先按 SKILL.md 的拆词规范把问题拆成"
+                    "⚠️ 内核**不拆词**(ADR-0016):你必须先按技能目录 WORD-SPLITTING.md 的规范把问题拆成"
                     "关键词,再经 --kw 传入。",
         epilog='示例:\n'
                '  kd search --kw "应用为禁用状态[网关]" --kw "2510"   # 唯一检索入口:每词一路,按序\n'
@@ -221,7 +221,7 @@ def build_parser():
     s.add_argument("--kw", action="append", default=None, required=True,
                    help="检索词(可重复,**每词一路**)。**内核原样、按你给的顺序发送**"
                         "(不拆解/不扩充/不前置/不排序)。顺序即召回顺序:排序键第一维是"
-                        "『你给的第几个词』。拆词规范见 SKILL.md 的「拆词规范」节。"
+                        "『你给的第几个词』。拆词规范见技能目录的 WORD-SPLITTING.md。"
                         "超过上限(默认 %d 词)按顺序取前 N 个,返回体写明 keywordsDropped"
                         % _IMPL.max_keywords())
     s.add_argument("--product", type=int, default=None,

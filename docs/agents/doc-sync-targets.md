@@ -18,6 +18,7 @@
 | --- | --- | --- |
 | `ANSWER-SPEC` | `skills/kingdee-knowledge/skills/kingdee-knowledge/ANSWER-SPEC.md` | `link-policy`, `retired-mechanisms` |
 | `SKILL.md` | `skills/kingdee-knowledge/skills/kingdee-knowledge/SKILL.md` | `link-policy`, `retired-mechanisms` |
+| `WORD-SPLITTING` | `skills/kingdee-knowledge/skills/kingdee-knowledge/WORD-SPLITTING.md` | `retired-mechanisms` |
 | `README` | `README.md` | `link-policy`, `link-policy-pointer`, `retired-mechanisms` |
 | `GLOSSARY.md` | `GLOSSARY.md` | `link-policy`, `link-policy-pointer`, `retired-mechanisms` |
 | `_upstream.py` | `src/kd/_impl/_upstream.py` | `link-policy` |
@@ -30,6 +31,12 @@
 `_upstream.py` 与 `_links.py` 都收着链接论证:前者是条目归一化时保留上游 `url` 的那一段,
 后者是模板 / 必需段 / 回答号选取 / 政策闸门。两个都进表,是因为 2026-10-01 的 K1 把论证
 搬了家而钉子照着旧地方照过 —— 一处论证在谁身上,表里就得有谁。
+
+`WORD-SPLITTING` 是 **2026-11-16(票 05)新增的载体**,下限随之从 8 抬到 9。它进的是
+`retired-mechanisms`:它是**用户（agent）真会照抄的 `kd search` 示例**（「固定套路」一节的
+两条命令），而 2026-09-28 那批拆除留下的已删参数与已删机制，一旦回写进示范命令，
+agent 照抄就是 argparse 退出码 2。这和安装脚本进本档的理由是同一个：**会被照抄的地方就得在册**。
+它不挂 `link-policy`：讲拆词的那个文件不承担「链接给不给」的表态职责。
 
 安装脚本与包文档进的是 `retired-mechanisms`:安装脚本末尾的"试一试"是用户装机后第一眼
 看到的用法,照抄必撞 argparse 退出码 2,所以它和主文档同等重要。
@@ -45,7 +52,7 @@
 | --- | --- | --- | --- |
 | `link-policy` | `src/kd/contract.json` 的 `linkPolicy` | 6 | 载体不得留着未标废止的旧口径;每份载体按 kind 分档说明 |
 | `link-policy-pointer` | 同上 | 2 | 载体里存在一行**活的**指针:同一行既有 `linkPolicy` 又有 `contract.json`,且不在版本史段落里 |
-| `retired-mechanisms` | `src/kd/cli.py` 的 argparse 定义(现行开关)+ `docs/adr/0016-检索词生成权移交调用层.md`(为什么删) | 8 | 载体不得出现"现在可以这样用"形态的已删参数与已删数据文件;说明变更的段落须带变更标记词 |
+| `retired-mechanisms` | `src/kd/cli.py` 的 argparse 定义(现行开关)+ `docs/adr/0016-检索词生成权移交调用层.md`(为什么删) | 9 | 载体不得出现"现在可以这样用"形态的已删参数与已删数据文件;说明变更的段落须带变更标记词 |
 
 三条事实对应**两条**钉子:`link-policy` 与 `link-policy-pointer` 都由
 `t_link_policy_docs_in_sync` 执行,`retired-mechanisms` 由 `t_docs_no_dead_mechanisms`
@@ -75,7 +82,7 @@ README 与 ANSWER-SPEC 之间已经对不上（`1` 一处写「星空企业版/�
 | 事实 id | 唯一真源（声明键） | 文档侧额度（份） | 现行重述位置 |
 | --- | --- | --- | --- |
 | `maxKeywords` | `src/kd/contract.json` 的 `limits.maxKeywords` | 1 | `SKILL.md` 的「收词上限」那一段（说明行带数字，指针在相邻行；计数按文档份） |
-| `productIds` | `src/kd/contract.json` 的 `productIds.names` | 3 | `README.md`（CLI 速查）/ `ANSWER-SPEC.md`（值→含义表）/ `SKILL.md`（产品线路由表） |
+| `productIds` | `src/kd/contract.json` 的 `productIds.names` | 3 | `README.md`（CLI 速查）/ `ANSWER-SPEC.md`（值→含义表）/ `SKILL.md`（产品线判定节） |
 | `truncatedValues` | `src/kd/contract.json` 的 `read.truncatedValues` | 2 | `ANSWER-SPEC.md`（反例节，既有钉子要求它在）/ `SKILL.md`（逐档行动表） |
 | `otherVisibility` | `src/kd/contract.json` 的 `search.note_otherSkipped` | 4 | `README.md`（`otherSkipped` 字段说明）/ `GLOSSARY.md`（other 档词条）/ `SKILL.md`（`--include-other` 触发条件）/ `ANSWER-SPEC.md`（判定信号） |
 

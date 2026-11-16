@@ -28,4 +28,6 @@ See `docs/agents/domain.md`.
 2. 自举失败才回退绝对路径 `~/.kingdee-kit/bin/kd`;再失败才 `python3 src/kd_run.py search --kw "…"`
 3. 检索形态:`kd search --kw "词1" --kw "词2"`(位置参数已删)→ 挑标题 → `kd read <id> --kind <type>`
 
-完整流程与拆词规范见技能 `kingdee-knowledge`(`~/.agents/skills/kingdee-knowledge/SKILL.md`)。
+完整流程见技能 `kingdee-knowledge`(`~/.agents/skills/kingdee-knowledge/SKILL.md`);
+拆词规范是同目录的 `~/.agents/skills/kingdee-knowledge/WORD-SPLITTING.md`
+(只在「清单召回不理想、要换词重搜」时才读)。

@@ -3132,15 +3132,26 @@ def t_doc_pointers_resolve():
         `~/.agents/skills/` 目录根本不存在,所以这个断链从未被任何东西发现)。
 
     判据因此是**解析后存在**,不是 grep 到了。扫描范围是两层人写的文档:`AGENTS.md`
-    (常驻层)与技能目录里的 `SKILL.md`(会话层);reference 层不在本钉子范围。
-    解析顺序:先按被扫文件自身目录,再按仓库根。
+    (常驻层)与技能目录里的 `SKILL.md`(会话层);解析顺序:先按被扫文件自身目录,再按仓库根。
+    ⚠️ **2026-11-16(票 05)把 `WORD-SPLITTING.md` 纳入扫描,而 `CITATION-EVIDENCE.md`
+    仍在外** —— 这个不对称是**刻意的**,理由写在这里,免得下一个人以为是漏了:
+      * 纳入它:票 05 把「拆词规范」整节搬出 `SKILL.md` 时,它是**新造的一份 reference**,
+        且它自己写着 4 条 `SKILL.md` 指针。新造的文件没有历史包袱,当场把它的指针也钉住
+        成本最低 —— 等它漂了再补,补的时候已经不知道哪条是真源。
+      * 排除另一份:`CITATION-EVIDENCE.md` 里那 3 条 `docs/research/*.md` 是**仓库内取证档**,
+        它自己第 43 行就写明「`docs/` 不在装机范围,故上面三条路径是给维护者的」。把它们算
+        断链,唯一的"修法"是删掉那三条留证 —— 那是拿守卫去消灭证据(票 03 评审已就此拒绝一次)。
+    判据本身仍是**解析后存在**,与 ① 同一套正则、同一套豁免。它单独多出的一件事是 ⑤:
+    搬迁的两个坏方向都得抓得住 —— 搬完忘了留指针(reference 成了孤儿,`SKILL.md` 里没有
+    任何东西把读者送过去),或留了指针却删了文件(① 抓的就是这个)。
 
     ⚠️ 三类 token **不是**仓库内文件指针,一律跳过:模板占位(`<feature>` 这类尖括号)、
     家目录与绝对路径(`~/…`、`/…`)、URL。少了这些豁免,断言会把「文件放哪」的说明
     误判成断链,而那正是把守卫变成噪音的经典形态。
     """
     import re as _re
-    docs = [os.path.join(REPO, "AGENTS.md"), _DOC_SKILL]
+    docs = [os.path.join(REPO, "AGENTS.md"), _DOC_SKILL,
+            os.path.join(os.path.dirname(_DOC_SKILL), "WORD-SPLITTING.md")]
     ptr = _re.compile(r"`([^`\n]+?\.md)`")
     checked, dead = 0, []
     for path in docs:
@@ -3165,9 +3176,41 @@ def t_doc_pointers_resolve():
        + "\n  ".join(dead)
        + "\n若该文件确实搬家了,同批改掉指针;若客户端要读它,把文件放进技能目录"
        "(装机只拷那一个目录),而不是往 `docs/` 指。")
-    ok(checked >= 6,
-       "只解析到 %d 条文件指针(实测基线 6:`AGENTS.md` 4 条 + `SKILL.md` 2 条)"
-       "—— 太少,可能是正则或豁免规则吃掉了一切导致的假绿" % checked)
+    ok(checked >= 10,
+       "只解析到 %d 条文件指针(实测基线 10:`AGENTS.md` 4 条 + `SKILL.md` 3 条"
+       " + `WORD-SPLITTING.md` 4 条;实际 11)—— 太少,可能是正则或豁免规则吃掉了一切"
+       "导致的假绿。余量只留 1 条:留多了,某份文档的指针被整段删掉在计数上仍是绿的"
+       % checked)
+    # ⑤ 拆词规范**必须仍有一条活指针**。票 05 把那一节搬出 SKILL.md,搬家的两个坏方向
+    #    都要能被抓到:搬完忘了留指针 ⇒ reference 成了没人读得到的孤儿;留了指针却删了文件
+    #    ⇒ 断链(① 已经抓)。这里补的是前者 —— 它没有可见信号:文件在盘上,光标没了。
+    #
+    #    ⚠️ **判据范围是 SKILL.md 一份,不是"全仓任一份"**。理由不是省事:SKILL.md 是**会话层**,
+    #    每次回答金蝶问题都会全程加载、且装机时必被带走,所以它是 reference 唯一可靠的入口;
+    #    AGENTS.md(常驻层)只是"要碰这个套件时"才被读到,拿它顶 SKILL.md 的指针等于
+    #    默认 agent 会先读 AGENTS.md —— 那正是本仓在票 05 里要消除的假设
+    #    (拆词规范之所以搬出去,就是因为不该被每一次全程加载趟过;反过来,也不该指望
+    #    常驻层去承担会话层的指路职责)。故这里只认 SKILL.md 里那一条。
+    #    ⚠️ **位置也要查,不只是"文件里出现过"**。票面的判据是「在**清单召回不理想**这条
+    #    分支上留一句指针」,不是「SKILL.md 里随便哪处出现过这个词」。实测过的坏形态:把指针
+    #    从第 2 步删掉、塞进末尾「禁止事项」,原来照样绿 —— 而读者是在**读清单不顺手**的那一刻
+    #    才需要它,放在禁止事项里等于让他先读完整个文件再回头找。故按**所在小节**判:
+    #    指针必须落在「第 2 步」那一节内(从该标题到下一个同级标题之间)。
+    skill_txt = open(_DOC_SKILL, encoding="utf-8").read()
+    lines_s = skill_txt.splitlines()
+    step2 = [i for i, ln in enumerate(lines_s) if ln.startswith("### 第 2 步")]
+    ok(step2, "SKILL.md 里找不到『### 第 2 步』小节 —— 检索流程的三步结构被改了")
+    starts, end = step2[0], len(lines_s)
+    for j in range(starts + 1, len(lines_s)):
+        if lines_s[j].startswith("### ") or lines_s[j].startswith("## "):
+            end = j
+            break
+    step2_body = chr(10).join(lines_s[starts:end])
+    ok("WORD-SPLITTING.md" in step2_body,
+       "「第 2 步:kd read」这一节里没有指针指向 `WORD-SPLITTING.md` —— 拆词规范搬到 reference 之后,"
+       "读者在**读清单不顺手、要换词重搜**的那一刻拿不到它。票面要求的是在这条分支上留一句指针,"
+       "不是文件里随便哪处出现过:放在别处(如末尾「禁止事项」)时,agent 得先读完整个文件才回头"
+       "去找,而它恰恰是在第 2 步卡住的。拆词是召回效果的主要变量(ADR-0016 之后全在调用方)。")
 
 
 @case("offline: 数字类事实只有一个出生地(重述额度 + 数字/标签对着声明比)")

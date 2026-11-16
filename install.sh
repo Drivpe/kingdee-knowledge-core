@@ -158,7 +158,7 @@ chmod +x "$ROOT/bin/kd" "$ROOT/bin/kd.py"
 #      * `~/.zshenv` 是 zsh 侧**唯一在所有模式都读**的文件(也正因如此它才适合承担这个角色),
 #        故对「zsh 启动 → 派生子进程」的链路(zsh 交互终端、乃至 zsh 里起的 DSH)确实有效。
 #    两者互补:这里写 rc 覆盖交互与 zsh 链路,**agent 的通用解是技能正文里那句自举命令**
-#    (见下方装机结尾的提示与 skills/…/SKILL.md 的「kd 的定位」)。
+#    (见下方装机结尾的提示与 skills/…/SKILL.md 的「第一步永远是自举 PATH」)。
 if [ "$NO_PATH" -eq 0 ]; then
   case ":$PATH:" in
     *":$ROOT/bin:"*) echo "[install] PATH 已包含 $ROOT/bin(跳过)";;
@@ -270,7 +270,7 @@ echo "⚠️ 给 AI agent 用(或任何非交互 shell)时,先自举 PATH ——
 echo "   / ~/.zshrc 的导出**只在交互 shell 生效**,agent 的非交互 shell 读不到,"
 echo "   直接敲 kd 会得到 command not found:"
 echo "     export PATH=\"\$HOME/.local/bin:\$HOME/.kingdee-kit/bin:\$PATH\"; kd --version"
-echo "   (技能正文的「kd 的定位」小节已内置这一步,agent 读技能即照做。)"
+echo "   (技能正文的「第一步永远是自举 PATH」小节已内置这一步,agent 读技能即照做。)"
 echo ""
 echo "本套件不合成回答(ADR-0008,零模型依赖):kd search 只出清单,挑中的条目用 kd read 取全文,"
 echo "再由你按技能目录里的 ANSWER-SPEC.md 自己合成(与 SKILL.md 同级)。排序由上游综合排序决定,内核只去重、零评分。"

@@ -333,7 +333,7 @@ Write-Host ""
 Write-Host "⚠️ 给 AI agent 用(或任何非交互 shell)时先自举 PATH —— 上面写进用户 PATH 的值," -ForegroundColor Yellow
 Write-Host "   已启动的进程读不到;Git Bash / WSL 侧的 agent 也未必继承 Windows 的 PATH:" -ForegroundColor Yellow
 Write-Host '     export PATH="$HOME/.local/bin:$HOME/.kingdee-kit/bin:$PATH"; kd --version'
-Write-Host "   (技能正文的「kd 的定位」小节已内置这一步,agent 读技能即照做。)"
+Write-Host "   (技能正文的「第一步永远是自举 PATH」小节已内置这一步,agent 读技能即照做。)"
 Write-Host ""
 Write-Host "本套件不合成回答(ADR-0008,零模型依赖):kd search 只出清单,挑中的条目用 kd read 取全文,"
 Write-Host "再由你按技能目录里的 ANSWER-SPEC.md 自己合成(与 SKILL.md 同级)。排序由上游综合排序决定,内核只去重、零评分。"

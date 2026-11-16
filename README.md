@@ -48,7 +48,7 @@
 > 不过滤只由显式 `0` 表达);清单**字段集按类型分四份**(第四份 `other` 为 v6.7 新增;类型不适用的键**不出现**,而非填 `null`);
 > `read(question)` 的截断由布尔改为**原因枚举**(两档,见 `src/kd/contract.json` 的 `read.truncatedValues`);
 > 新增顶层 `keywordsDropped`(超限丢了几条词)。
-> ⚠️ **迁移**:`kd search "整句"` → `kd search --kw "词1" --kw "词2"`(拆词规范见 `SKILL.md`);
+> ⚠️ **迁移**:`kd search "整句"` → `kd search --kw "词1" --kw "词2"`(拆词规范见技能目录的 `WORD-SPLITTING.md`);
 > `--max-routes 1` → 只给一个 `--kw`;`--product 0` 仍是"不过滤",`product_id=None` 改传 `0`。
 > **v6.5 全面修复**(2026-09-28,ADR-0015)——链接口径按 kind 分档: **`knowledge`/`article` 引用给链接、`question` 当时判为不给**;内核新增**稀有数字 token 路**(错误码/单号自动抢占第 1 路,默认路径不再劣于手工拆词);`read` 的 `budget` 参数与 `search` 统一;字段集的回归检查由"自己比自己"改为**冻结基线 + 真实输出 + 注入自检**;`docs/adr/0015-挑选判据归属.md` 钉死「按标题挑」的边界(判据进文档、内核零感知)。
 > **v6.4 契约重构**(2026-09-27,ADR-0014)——清单粒度由**回答级改为帖子级**:
@@ -136,7 +136,7 @@ curl -fsSL https://raw.githubusercontent.com/Drivpe/kingdee-knowledge-kit/main/i
 >
 > 这条命令自己前置两个落点(pipx 的 `~/.local/bin` 与一键脚本的 `~/.kingdee-kit/bin`),
 > 不依赖任何 rc 文件,bash / zsh / sh 通用。回显版本号即成功,同一 shell 内后续照常写 `kd`。
-> 技能正文的「kd 的定位」小节已把它写成**每个任务的第一步**,agent 读技能即照做。
+> 技能正文的「第一步永远是自举 PATH」小节已把它写成**每个任务的第一步**,agent 读技能即照做。
 
 ```text
 1. 自举 PATH,再跑 kd --version / kd health —— 确认内核可用;kd --help 看三条子命令与示例
@@ -169,9 +169,9 @@ bash install.sh --root ~/kit --no-path --no-skills                   # *nix 自�
 
 产品线**由调用层判定**:你可以显式传 `--product N`,内核照用,不会因为问句里出现「苍穹」等字样而改写它
 (内核**不做任何字面推导**;只有你不传时,才落到默认 93)。判定口径见
-[SKILL.md](skills/kingdee-knowledge/skills/kingdee-knowledge/SKILL.md) 的「产品线语义识别」节。
+[SKILL.md](skills/kingdee-knowledge/skills/kingdee-knowledge/SKILL.md) 的「产品线判定」节。
 
-`--kw` 是**唯一入口**(v6.6 起位置参数已删):可重复,每个词一路。内核**不拆词、不改序、不扩充**——怎么拆由你按 `SKILL.md` 的拆词规范决定,给词的顺序就是召回顺序。
+`--kw` 是**唯一入口**(v6.6 起位置参数已删):可重复,每个词一路。内核**不拆词、不改序、不扩充**——怎么拆由你按技能目录 `WORD-SPLITTING.md` 的拆词规范决定,给词的顺序就是召回顺序。
 
 > **没有 `kd ask`。** 单入口定案(ADR-0013):`ask` 及其专属件已整体删除,调用 `kd ask` 会得到 argparse 退出码 2。
 > **排序不是内核算的**:每一路都是上游综合排序的产物,内核只去重;`hitRoutes`/`routes[]` 是纯信息字段,不参与排序。

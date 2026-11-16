@@ -71,7 +71,7 @@ def search(keywords=None, product_id=_DEFAULT_PRODUCT_ID,
     ⚠️ **内核不生成任何检索词**(ADR-0016 决策 1,2026-09-28):`keywords` 是**唯一**
     输入,内核把收到的词**原样、按原顺序**发往上游——不拆解、不扩充、不前置、不排序。
     `queries[]` 与你给的词逐字、逐序相同;结果顺序 = (你给词的顺序, 该词内上游名次)。
-    拆词是**调用层**的职责:你按 SKILL.md 的拆词规范把问题拆成关键词后传进来,
+    拆词是**调用层**的职责:你按技能目录 WORD-SPLITTING.md 的拆词规范把问题拆成关键词后传进来,
     内核不持有模型通道。**原句路已随本 ADR 整体废止**(ADR-0009)——原句不再是特殊路,
     它就是你想发的一个词。
 
@@ -127,7 +127,7 @@ def search(keywords=None, product_id=_DEFAULT_PRODUCT_ID,
     if isinstance(keywords, (str, bytes)):
         raise InternalError(
             "keywords 应为**词列表**,收到单个字符串: %r。"
-            "内核不再收整句(位置参数 text 已删,ADR-0016)——请先按 SKILL.md 的拆词规范"
+            "内核不再收整句(位置参数 text 已删,ADR-0016)——请先按 WORD-SPLITTING.md 的拆词规范"
             "把问题拆成关键词,再以列表传入:search(keywords=[\"词1\", \"词2\"])"
             % (keywords[:40] if isinstance(keywords, str) else keywords,))
     # ⚠️ **dict 同类拒掉**(v6.6 审查补):`dict` 是可迭代的,`for kw in {...}` 会遍历
