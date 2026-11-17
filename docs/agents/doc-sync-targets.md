@@ -20,7 +20,7 @@
 | `SKILL.md` | `skills/kingdee-knowledge/skills/kingdee-knowledge/SKILL.md` | `link-policy`, `retired-mechanisms` |
 | `WORD-SPLITTING` | `skills/kingdee-knowledge/skills/kingdee-knowledge/WORD-SPLITTING.md` | `retired-mechanisms` |
 | `README` | `README.md` | `link-policy`, `link-policy-pointer`, `retired-mechanisms` |
-| `GLOSSARY.md` | `GLOSSARY.md` | `link-policy`, `link-policy-pointer`, `retired-mechanisms` |
+| `GLOSSARY.md` | `GLOSSARY.md` | `glossary-document`, `link-policy`, `link-policy-pointer`, `retired-mechanisms` |
 | `_upstream.py` | `src/kd/_impl/_upstream.py` | `link-policy` |
 | `_links.py` | `src/kd/_impl/_links.py` | `link-policy` |
 | `install.sh` | `install.sh` | `retired-mechanisms` |
@@ -61,12 +61,19 @@ agent 照抄就是 argparse 退出码 2。这和安装脚本进本档的理由�
 | `link-policy` | `src/kd/contract.json` 的 `linkPolicy` | 6 | 载体不得留着未标废止的旧口径;每份载体按 kind 分档说明 |
 | `link-policy-pointer` | 同上 | 2 | 载体里存在一行**活的**指针:同一行既有 `linkPolicy` 又有 `contract.json`,且不在版本史段落里 |
 | `contract-rationale-pointer` | `src/kd/contract.json` 的 `rationalePointer` | 1 | 该指针解析出的文件真在盘上、且不在技能目录里(由 `t_contract_rationale_split` 的 ① 段执行) |
+| `glossary-document` | `GLOSSARY.md` 自身(位置类事实,没有第二个来源) | 1 | 该载体登记在册、路径在盘上;术语表的路径**只在本表出现一次**,改名只改这里一行(由 `t_glossary_is_terms_only` / `t_numeric_facts_single_home` 执行) |
 | `retired-mechanisms` | `src/kd/cli.py` 的 argparse 定义(现行开关)+ `docs/adr/0016-检索词生成权移交调用层.md`(为什么删) | 9 | 载体不得出现"现在可以这样用"形态的已删参数与已删数据文件;说明变更的段落须带变更标记词 |
 
-四条事实对应**三条**钉子:`link-policy` 与 `link-policy-pointer` 都由
+五条事实对应**四条**钉子:`link-policy` 与 `link-policy-pointer` 都由
 `t_link_policy_docs_in_sync` 执行,`retired-mechanisms` 由 `t_docs_no_dead_mechanisms`
-执行,`contract-rationale-pointer` 由 `t_contract_rationale_split` 执行(票 07)。
+执行,`contract-rationale-pointer` 由 `t_contract_rationale_split` 执行(票 07),
+`glossary-document` 由 `t_glossary_is_terms_only` 与 `t_numeric_facts_single_home` 各自解析路径(票 08)。
 一个用例执行两条事实是正常的 —— 它们查的是同一批载体的不同侧面。
+
+⚠️ `glossary-document` 是**位置类事实**:它的「真源」就是文件自身,判据只有「登记在册、路径在盘上」一条。
+它存在的理由不是双向一致性,而是**让路径只出现在本表一处** —— 2026-11-17 实测:术语表改名后,
+两条本批新加的钉子仍写死 `GLOSSARY.md`,离线组 71 通过 / 2 失败。现在它们都经
+`_sync_targets("glossary-document")` 取路径,改名只改载体表那一行。
 
 ⚠️ `contract-rationale-pointer` **不**走 `_sync_targets()` 取载体:它的载体是"指针解析出来的
 那一份",路径只存在于 `contract.json` 的 `rationalePointer` 里。若在这里再写一遍路径,就制造

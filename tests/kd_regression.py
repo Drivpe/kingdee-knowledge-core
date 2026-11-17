@@ -2933,6 +2933,24 @@ def _parse_sync_table(text):
     return rows
 
 
+def _doc_from_manifest(fact, why):
+    """文档侧导航用的一份载体路径,**只从载体清单读**(票 08)。
+
+    治的病与票 01 同型,但复发在新钉子上:2026-11-17 实测,把 `GLOSSARY.md` 改名 `TERMS.md`、
+    清单改一行、AGENTS.md 指针同批改之后,`t_glossary_is_terms_only` 与
+    `t_numeric_facts_single_home` 仍以 `FileNotFoundError` 红 —— 它们自己写死了路径。
+    改名不该打断守卫;清单是唯一修复点,这里就只认清单。
+
+    :param fact: 事实 id(如 ``glossary-document``),取自载体清单的事实表。
+    :param why: 这条路径为什么不写在用例里 —— 由调用方写明病因,免得下一个人又加回字面量。
+    """
+    files = _sync_targets(fact)
+    ok(len(files) == 1,
+       "事实 %r 应恰有一份载体(它是位置类事实,登记的就是那份文档本身),实为 %r"
+       % (fact, sorted(files)))
+    return list(files.values())[0]
+
+
 def _parse_fact_table(text):
     """事实表 → {事实 id: 载体数下限}。
 
@@ -3559,7 +3577,9 @@ def t_glossary_is_terms_only():
     """
     import re as _re
 
-    txt = open(os.path.join(REPO, "GLOSSARY.md"), encoding="utf-8").read()
+    glossary = _doc_from_manifest("glossary-document",
+                                  "2026-11-17:本条曾写死路径,术语表改名后以 FileNotFoundError 红")
+    txt = open(glossary, encoding="utf-8").read()
     lines = txt.split("\n")
 
     # ① `## Language` 必须是**唯一**的 `##` —— 不是"第一个"就够。
@@ -3716,7 +3736,10 @@ def t_numeric_facts_single_home():
            % (fact, os.path.relpath(_SYNC_DOC, REPO)))
 
     skill_dir = os.path.dirname(_DOC_SKILL)
-    docs = [os.path.join(REPO, "README.md"), os.path.join(REPO, "GLOSSARY.md"),
+    # ⚠️ 术语表路径从载体清单读(票 08):本批新加的钉子曾把它写死,改名时红的不是判据而是路径常量。
+    # `README.md` 与 `SKILL.md` 刻意不迁:前者是 GitHub 的约定文件名,后者是客户端装机入口,
+    # 改名不属于「文档改名」这类操作(见票 08 的「不做」一节)。
+    docs = [os.path.join(REPO, "README.md"), _doc_from_manifest("glossary-document", "见上方注释"),
             _DOC_SKILL, os.path.join(skill_dir, "ANSWER-SPEC.md"),
             os.path.join(skill_dir, "CITATION-EVIDENCE.md")]
     for path in docs:
@@ -4063,6 +4086,57 @@ def t_install_data_files():
     ok(head == b"\xef\xbb\xbf",
        "install.ps1 缺 UTF-8 BOM(首三字节 %r)——它含大量中文字面量,"
        "PowerShell 5.1 会按 ANSI 解码导致乱码,且不报错" % (head,))
+
+    # ⑤ **装机完整性**:真跑一次安装,再断言装机产物含 SKILL.md 引用的每一个文件。
+    #   ⚠️ **2026-11-17(票 08)补**。规格 Testing Decisions 的第四类指标写明「跑完安装流程后,
+    #   技能目录里必须含 SKILL.md 引用的每一个文件」,而这条一直只有人工实跑。它要治的病也正是
+    #   本仓踩过的那个:SKILL.md 从八处指向 `docs/ANSWER-SPEC.md`,而装机脚本只 `cp -r` 技能目录,
+    #   客户端照指针走过去是空的 —— 而本机 `~/.agents/skills/` 当时根本不存在,这个断链一次都没被发现。
+    #   源码树里断言「指针目标存在」抓不到它:源码树有 `docs/`,装机产物没有。
+    #
+    #   做法是**折进本条既有用例**,不新增钉子(判据同属装机同步,拆成两条只会让同一件事两个入口),
+    #   并把 `HOME` 与 `--root` 一起指到临时目录 —— 不碰本机真实的 `~/.agents/skills` 与
+    #   `~/.kingdee-kit`,所以跑完之后本机装过的那一份原样不动。
+    import shutil as _shutil, tempfile as _tempfile
+    tmp = _tempfile.mkdtemp(prefix="kd-install-")
+    try:
+        env = dict(os.environ, HOME=tmp)
+        cp = subprocess.run(
+            ["bash", os.path.join(REPO, "install.sh"),
+             "--root", os.path.join(tmp, ".kingdee-kit"),
+             "--no-path", "--no-verify", "--harness", "agents"],
+            cwd=REPO, env=env, capture_output=True, text=True, timeout=180)
+        ok(cp.returncode == 0,
+           "装机脚本在临时 HOME 下跑失败(exit %r)—— 装机完整性无从核对:\n%s"
+           % (cp.returncode, (cp.stderr or cp.stdout)[-1200:]))
+        installed = os.path.join(tmp, ".agents", "skills", "kingdee-knowledge")
+        ok(os.path.isdir(installed),
+           "装机后没有 %s —— --harness agents 应把它装进 $HOME/.agents/skills/" % installed)
+        # 要装的清单 = SKILL.md 里每一条**同目录**的文件指针(排除 URL / 家目录 / 模板占位)。
+        # 只认同目录,是因为装机单元就是这一个目录;写 `docs/xxx.md` 的指针本来就不该出现
+        # (由 `t_doc_pointers_resolve` 在源码树一侧守着)。
+        skill_src = os.path.dirname(_DOC_SKILL)
+        want = {"SKILL.md"}
+        for m in _re.finditer(r"`([^`\n]+\.md)`", open(_DOC_SKILL, encoding="utf-8").read()):
+            tok = m.group(1).strip()
+            if any(c in tok for c in "<>{}$*") or tok.startswith(("~", "/", "http")) or "/" in tok:
+                continue
+            want.add(tok)
+        ok(len(want) > 1,
+           "SKILL.md 里没解析出任何同目录 reference 指针(只解析到 %r)—— 装机完整性这条成了恒真"
+           % (sorted(want),))
+        missing = sorted(f for f in want if not os.path.exists(os.path.join(installed, f)))
+        ok(not missing,
+           "装机产物缺 SKILL.md 引用的文件: %r —— 客户端 agent 照指针走过去是空的"
+           "(这正是 2026-11 那次断链的形态:SKILL.md 指 docs/,而装机只拷技能目录)。"
+           "引用清单:%r;装机目录:%s" % (missing, sorted(want), installed))
+        # 反向确认:装机目录里若少了源目录里有的一份,上面那句必须红 —— 故先确认源目录**有**这些文件,
+        # 否则 want 是个空集,断言会以「一条都没解析出来」红,那是另一回事。
+        for f in sorted(want):
+            ok(os.path.exists(os.path.join(skill_src, f)),
+               "源码技能目录缺 %s —— 装机断言要装的清单里有一份在源码里就不存在" % f)
+    finally:
+        _shutil.rmtree(tmp, ignore_errors=True)
 
 
 @case("offline: 上游故障分类单一来源(边界够宽且不吞程序缺陷)")
