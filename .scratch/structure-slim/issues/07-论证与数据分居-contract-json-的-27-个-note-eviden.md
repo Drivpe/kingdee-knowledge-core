@@ -11,7 +11,7 @@
 
 **Blocked by:** 04
 
-**Status:** closed
+**Status:** resolved
 
 - [x] 逐键分类 27 个 `note`/`evidence`：哪些是纯论证（人读）、哪些含代码会读的结构化信息（机器读）。后者留在 `contract.json`
 - [x] 新建 `docs/contract-rationale.md`（位置自定，也可拆进 `docs/adr/`），把纯论证类整块搬入，按键路径分节
@@ -38,7 +38,10 @@
 
 ⚠️ `contract.json` 是包内唯一数据文件（`pyproject.toml` 的 `package-data` 只登记了它），任何新增文件都不进包 —— 所以搬出去的论证必须是 `docs/` 侧的人读文档，不能是运行期依赖。
 
-## 进度
+## Comments
+
+### local — 2026-11-17T01:40:36.105Z
+27 个 note/evidence 键全部搬进 docs/contract-rationale.md（逐字 35/35 命中，零丢失），声明留 rationalePointer，体积 20 480 B → 2 555 B；逐键分类证明 27 个键零代码消费者，故票面那条反向判据（「若绝大多数含机器读信息则不做」）不成立；73 通过 / 0 失败，七条判据均手动破过一次验证非恒绿。提交 2527345。
 
 ## 进度
 
