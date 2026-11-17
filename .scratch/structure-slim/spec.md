@@ -1,6 +1,6 @@
 <!-- DSH-FORMAT: md-v1 -->
 <!-- DSH-TITLE: 结构精简：把文档面按 agent 的装载时机重排 -->
-<!-- DSH-STATUS: ready-for-agent -->
+<!-- DSH-STATUS: closed -->
 <!-- DSH-LABELS: ready-for-agent -->
 <!-- DSH-IDEMPOTENCY-KEY: deck-b0db75c2-5981277 -->
 <!-- DSH-CREATED: 2026-11-11T07:45:15.599Z -->
@@ -140,5 +140,102 @@
 **`.scratch` 白名单的判据来源。** 它不是本仓新发明的规则。同机 `yolo-dataset-workbench` 的 `.gitignore` 注释写着“票面本身要入库，缓存在 .scratch/ 之外”，tracked 了 60 个 `.scratch` 下的文件；`strinova-rig` 与 `makcu-learning` 划的是同一句“判词与脚本入库，原料不入库”。本次沿用，不另立一套。
 
 **后端的声明文件要一起改。** 切到本地 markdown 之后，`docs/agents/issue-tracker.md` 的标题行与 `docs/agents/workspace.yaml` 必须一致；deck 先读 workspace 文件，读不到才解析标题行，且只认 `markdown` 或 `local` 两个词。`triage-labels.md` 里还留着 GitHub 的 `gh label create` 语境，也要一并对齐到本地文件的做法。
+
+## Comments
+
+### local — 2026-11-17T06:16:00.167Z
+## 收尾：四件事逐项复核
+
+交付提交 **`bc062dc9fa26467095a48886eb967c75dccfc4ca`**（= 远端 `origin/main` HEAD）。检查在这个提交上跑，结果如下。
+
+### ① 规格承诺的内容真的实现
+
+逐票（每张都打开票面 + 对照代码/测试，不只看关闭状态）：
+
+| 票 | 查了什么 | 读数 |
+| --- | --- | --- |
+| 01 | `docs/agents/doc-sync-targets.md` 载体表（术语表在 :23）；`t_link_policy_docs_in_sync`(:2994→现:3010)、`t_docs_no_dead_mechanisms`(:5304) 遍历清单；变异：清单路径改回 `CONTEXT.md` → 71/2 红并指「改清单里那一行」 | 成立 |
+| 02 | `git show 3f487c9^:docs/eval-report-v4.md` 取得到原文；residual grep（排除 ADR/specs/tickets/research/.scratch）零命中；`docs/` 只剩 `adr agents contract-rationale.md research specs tickets` | 成立 |
+| 03 | 技能目录四份齐（`ANSWER-SPEC.md` 170 行、`CITATION-EVIDENCE.md` 43 行）；`t_doc_pointers_resolve`(:3220) 扫 AGENTS.md + SKILL.md + WORD-SPLITTING.md | 成立 |
+| 04 | `t_numeric_facts_single_home`(:3692)；变异：`README.md:167` 的 `1=星空企业版/标准版` 改 `1=企业版` → 72/1 红并指名 `productIds.1` | 成立 |
+| 05 | `SKILL.md` 301 行、`grep -c 拆词`=1 且落在第 2 步(:246-247)；`WORD-SPLITTING.md` 96 行；删掉该指针 → 72/1 红，报「第 2 步这一节里没有指针」 | 成立 |
+| 06 | `docs/adr/0019-顶层删除-total.md`、`0020-台账校正轮收尾.md` 在盘；`GLOSSARY.md` 286 行、`^## ` 仅 :19 `## Language`；追加 `## 版本变更史` / 插入 `**版本 6.10**` 均红 | 成立 |
+| 07 | `contract.json` 2 555 B（判据 <12 000）、`docs/contract-rationale.md` 22 138 B；`rationalePointer` 在首行；`t_contract_rationale_split`(:3368) | 成立 |
+| 08 | 本会话新建（见 ④）：清单新增 `glossary-document` 事实 + `_doc_from_manifest`(:2936)，两处硬编码路径迁走；装机完整性折进 `t_install_data_files`(:4090) | 成立 |
+
+逐条用户故事：
+
+| US | 证据 |
+| --- | --- |
+| 1 | `SKILL.md` 按装载顺序排（定案 → PATH 自举 → 三步 → 站外兜底 → 异常 → 禁止事项），301 行 |
+| 2 | `SKILL.md:255` 指针 → 同目录 `ANSWER-SPEC.md`，装机后实测在同一目录 |
+| 3 | `SKILL.md:247` 指针 → `WORD-SPLITTING.md`，且由 `t_doc_pointers_resolve` 判「必须落在第 2 步那一节内」 |
+| 4 | `SKILL.md:263` → `CITATION-EVIDENCE.md`（43 行：三档数字 14/14、12/12、22/22 + 三个反例 + 登录态假阴性） |
+| 5 | `GLOSSARY.md:132` 与各载体同行的活指针 → `contract.json` 的 `linkPolicy`；`src/kd/_impl/_links.py:28,43` 真的读它 |
+| 6 | `t_numeric_facts_single_home`（额度按份 + 值与声明双向比对） |
+| 7 | `contract.json` 的 `productIds.names` 是唯一标签来源；变异改 README 标签 → 红 |
+| 8 | **本会话唯一发现的真实缺口，已补**：见下方「为什么多了一张票 08」 |
+| 9 | `contract.json` 2 555 B、`rationalePointer` 一行把论证送去 `docs/contract-rationale.md` |
+| 10 | `docs/contract-rationale.md` 的节标题就是原键路径，新论证写去哪有明确落点 |
+| 11 | `doc-sync-targets.md` 是同步点的唯一登记处（10 份载体 + 5 条事实 + 下限闸） |
+| 12 | `GLOSSARY.md` 286 行、二级标题恰好一个 `## Language` |
+| 13 | ADR-0019（6.9 删 `total`）、ADR-0020（6.8 台账校正轮），均为本批新建 |
+| 14 | 28 份评测档已 `git rm`，`docs/` 下再无 `eval-*` 等档案 |
+| 15 | `git show 3f487c9^:docs/eval-report-v4.md` 实测能取回原文 |
+| 16 | `git ls-files .scratch` = 19 条（structure-slim 8 条 + v2 那轮 11 条），票与规格都进了版本 |
+| 17 | 装机后 `~/.agents/skills/kingdee-knowledge/` 四份齐，`diff -r` 与源目录 IDENTICAL；新增自动断言见 US8 行的票 08 |
+| 18 | 结构类钉子集中在 `tests/kd_regression.py:2739–4140` 这一段（清单 helper + 四条钉子） |
+| 19 | `t_doc_pointers_resolve` 判「解析后存在」，不是「字符串出现过」；变异删 `CITATION-EVIDENCE.md` → 红 |
+| 20 | `AGENTS.md` 三节 `See` 指针分别到 `issue-tracker.md` / `triage-labels.md` / `domain.md` |
+
+**以「与票面不符」削减的六处，经用户 2026-11-17 当场逐条追认**（用户原话：「全部追认，写进评论」）：
+
+1. 票 01：票面要「一份漂移让两条钉子同时红」，实测只该红对应那条（两条钉子守两条不同事实）。已按「漂移必须被抓住」重验五组，逐组红在正确的那条上。
+2. 票 02：票面要「`git status --short` 只显示预期内的删除」。开工时工作区已有 PATH 自举的未提交改动，事后单独提交 `f5d6cd1` 归位；本票的删除与指针改写没夹带其他改动。
+3. 票 04：额度口径由「按行」改为「按份」（实测按行 4/13/5，按份 2/4/4）。票面那个「两处」只数了行内速查形态，漏掉了 GLOSSARY 与 ANSWER-SPEC 那两份——而正是那两份的 `1`、`0` 标签与声明不符。
+4. 票 05：票面写「拆词规范一节省 162 行」，逐版本量都是 91 行，验收以 91 为准。
+5. 票 06：票面抽查要求「能查到六个术语」，而「全文」「链接政策」在本仓从来不是独立词条（HEAD 也没有）。按现状交付，六个词都能在 `## Language` 以下查到。
+6. 票 07：票面的「27 个键」实为 26 个纯论证 + 1 个嵌在父节里的 `note`（`productIds.evidence.note`）。
+
+### ② 改动进了长期分支
+
+本仓交付惯例是**直接推 `main`**（`git log --merges` 为空、无 PR/MR、无 tag）。据此：
+
+- `origin/main` 从 `0b7c217` 快进到 **`bc062dc`**，25 个提交一次推送完成（含本批全部 8 张票的改动）。
+- 推送后 `git ls-remote origin refs/heads/main` = `bc062dc9fa…`，与本地 `HEAD` 相同；`git rev-list --count origin/main..main` = **0**。
+- 完整提交序列：`6f4fe71`(01) → `3f487c9`(02) → `f5d6cd1` → `762031e`(03) → `3e224cd`(04) → `b41998c`(05) → `eb6b868`(06) → `2527345`(07) → `6916c83`(后端声明入库) → `9a71127`(08) → `8c53079`(v2 票入库) → `bc062dc`(票 08 记录)。
+
+### ③ 检查可复现地全绿
+
+命令：`python3 tests/kd_regression.py`（离线组，不联网）
+
+| 跑在哪 | 结果 |
+| --- | --- |
+| 主工作区 `bc062dc`，工作树对提交零改动 | **通过 73 / 失败 0** |
+| 从 GitHub 全新克隆 `bc062dc`（`/tmp/kd-verify2`，工作树干净） | **通过 73 / 失败 0** |
+
+跨票合并后的交叉核验（多张票改同一批文件，故合成一棵树重跑）：票 01/04/05/06/07/08 都改 `tests/kd_regression.py` 与 `docs/agents/doc-sync-targets.md`，上表的 73/0 就是合成后的读数；单票自己的基线是 69 → 70 → 71 → 72 → 73，逐票递进无回退。
+
+### ④ 遗留全部处置
+
+| 遗留 | 处置 |
+| --- | --- |
+| US8 只做到一半（两条新钉子写死 `GLOSSARY.md`） | **新建票 08 并做完**：清单加 `glossary-document` 事实、`_doc_from_manifest()` 统一取路径。变异：改名 + 清单一行 → 73/0；清单改回旧路径 → 4 条同红 |
+| 装机完整性无自动判据 | **折进既有 `t_install_data_files`，不新增钉子**（按用户「尽可能精简」的口径）；两张反向确认均变红 |
+| `docs/agents/workspace.yaml`、`label-colors.yaml` 未入库（干净克隆里 `triage-labels.md:20` 是死链） | 提交 `6916c83` |
+| v2 那轮 10 张票 + `docs/research/2026-11-04-…md` 未跟踪 | 提交 `8c53079` |
+| 陈旧 worktree `/tmp/headwt`（独有提交 `7123808`） | 先逐字节确认其独有内容（两个 yaml）已落地，再 `git worktree prune`。`git worktree list` 现只剩主工作树 |
+| 仓库根 3 个 `*.log` | 已被 `.gitignore:16` 覆盖，不入库，无动作 |
+| 规格 Out of Scope 里 `sorts_type`/`rate` 那条「本次不单列票」 | 票 04 已处置（`GLOSSARY.md:87-90`），结论已写回规格正文原处 |
+
+无未提交改动（`git status --porcelain --untracked-files=all` 为空）。临时目录 `/tmp/kd-*` 已全部删除。
+
+### 为什么多了一张票 08
+
+7 张票全部关闭只是触发条件。逐条核对用户故事时才发现：票 01 修的只是两条**老**同步钉子，本批新加的 `t_glossary_is_terms_only`(:3562) 与 `t_numeric_facts_single_home`(:3719) 各自把 `GLOSSARY.md` 写死在用例里。实测「改名 + 清单改一行 + AGENTS.md 指针同批改」是 **71 通过 / 2 失败**，两条都以 `FileNotFoundError` 红——红的不是它要守的一致性，是路径常量。US8 承诺的「改名代价降到改一行」因此不成立，故新建票 08 补齐后才关本规格。
+
+### 一个已知边界（不假装覆盖）
+
+`docs/agents/triage-labels.md:20` 那条死链现在修好了（文件已入库），但根因是 `/tmp/headwt` 那份未合并的提交把两个 yaml 和 `doc-sync-targets.md` 的改动混在一起，落地时只挑了文档部分、丢了两个 yaml 的**提交动作**（文件本身当时还在工作区）。本批已把它们正式入库，并新增了装机完整性断言，但**没有**新增一条专门检查 `docs/agents/*.md` 里 Markdown 链接目标存在的钉子——`t_doc_pointers_resolve` 只扫 `AGENTS.md`、`SKILL.md` 与 `WORD-SPLITTING.md`。下次若在 `docs/agents/` 里加链接，这条不在守卫范围内。
 
 ## 进度
