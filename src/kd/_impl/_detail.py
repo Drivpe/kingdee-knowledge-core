@@ -441,7 +441,8 @@ def project_read(payload, kind):
     可观测的对外行为(CLI 输出的是有序 JSON),本段定位是「把既有事实收成单一来源」,
     **不是改契约**。故声明在这里管**键集**,键序仍由构造顺序承载。
 
-    ⚠️ **必须被调用两次**(见 contract.json 的 `read.note_statsInjection`):
+    ⚠️ **必须被调用两次**(论证见 docs/contract-rationale.md 的 `read.note_statsInjection` 小节
+—— 声明本身只有键集,不解释时机):
     `_detail` 里这一次 + `_public.read` 注入 `stats` 之后再一次 —— 后者是 `stats`
     也在声明里的代价(与 search 侧 `project_top` 的两段式同因)。
     """

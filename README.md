@@ -206,8 +206,8 @@ bash install.sh --root ~/kit --no-path --no-skills                   # *nix 自�
 `results[]` 里**没有** `contentText`——要全文必须 `kd read`。也**没有任何 score 字段**,
 没有 `page`/`pageSize`/`totalPages`(清单分页已于 v6.4 删除),没有 `questionId`
 (帖级化后条目 `id` 就是帖子号),顶层没有 `text` 与 `budget_exhausted`(v6.6 删除)、
-没有 `total`(v6.9 删除:**破坏性变更**,理由见 [contract.json](src/kd/contract.json) 的
-`search.note_totalRemoved`)、
+没有 `total`(v6.9 删除:**破坏性变更**,理由见 [contract-rationale.md](docs/contract-rationale.md)
+的 `search.note_totalRemoved` 小节;声明本身在 [contract.json](src/kd/contract.json))、
 没有 `routesDegraded`(2026-09-29 删除:它报得自相矛盾,用户口径为"重复的不提示")。
 
 ⚠️ **类型不适用的键不出现 ≠ 值为 `null`**(v6.6):前者是"结构性不适用"(知识文档永远

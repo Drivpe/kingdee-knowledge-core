@@ -27,6 +27,7 @@
 | `install.ps1` | `install.ps1` | `retired-mechanisms` |
 | `__init__.py` | `src/kd/__init__.py` | `retired-mechanisms` |
 | `core.py` | `src/kd/core.py` | `retired-mechanisms` |
+| `contract-rationale` | `docs/contract-rationale.md` | `contract-rationale-pointer` |
 
 `_upstream.py` 与 `_links.py` 都收着链接论证:前者是条目归一化时保留上游 `url` 的那一段,
 后者是模板 / 必需段 / 回答号选取 / 政策闸门。两个都进表,是因为 2026-10-01 的 K1 把论证
@@ -41,6 +42,13 @@ agent 照抄就是 argparse 退出码 2。这和安装脚本进本档的理由�
 安装脚本与包文档进的是 `retired-mechanisms`:安装脚本末尾的"试一试"是用户装机后第一眼
 看到的用法,照抄必撞 argparse 退出码 2,所以它和主文档同等重要。
 
+`contract-rationale` 是 **2026-11-17(票 07)新增的载体**,下限随之从 9 抬到 10。它进的是
+`contract-rationale-pointer`:论证与实测从 `contract.json` 搬来之后,这份文件成了「为什么这么定」
+的唯一所在地,而**它自己必须被指向**。判据是**单箭头的**:`contract.json` 的 `rationalePointer`
+必须解析到它、且它不得落进技能目录(装机单元只拷技能目录)。反向不要求 —— 表里那份载体清单
+是本仓内部的维护地图,它指向 `docs/` 侧文件是常态(`link-policy` 那几条同理),拿一份仓库侧
+文档去要求仓库根文档回指,只会逼出一堆为了满足判据而存在的指针。
+
 `README` 与 `GLOSSARY.md` 额外挂着 `link-policy-pointer`:它们不只是"口径别写反",还必须
 **明确指向**唯一真源。这两份历史上都自己另立过一套(README 写"引用做成可点击角标";
 术语表断言 `linkPolicy.question` 仍为 `no-link`),所以对它们的要求比别的载体高一层。
@@ -52,11 +60,17 @@ agent 照抄就是 argparse 退出码 2。这和安装脚本进本档的理由�
 | --- | --- | --- | --- |
 | `link-policy` | `src/kd/contract.json` 的 `linkPolicy` | 6 | 载体不得留着未标废止的旧口径;每份载体按 kind 分档说明 |
 | `link-policy-pointer` | 同上 | 2 | 载体里存在一行**活的**指针:同一行既有 `linkPolicy` 又有 `contract.json`,且不在版本史段落里 |
+| `contract-rationale-pointer` | `src/kd/contract.json` 的 `rationalePointer` | 1 | 该指针解析出的文件真在盘上、且不在技能目录里(由 `t_contract_rationale_split` 的 ① 段执行) |
 | `retired-mechanisms` | `src/kd/cli.py` 的 argparse 定义(现行开关)+ `docs/adr/0016-检索词生成权移交调用层.md`(为什么删) | 9 | 载体不得出现"现在可以这样用"形态的已删参数与已删数据文件;说明变更的段落须带变更标记词 |
 
-三条事实对应**两条**钉子:`link-policy` 与 `link-policy-pointer` 都由
+四条事实对应**三条**钉子:`link-policy` 与 `link-policy-pointer` 都由
 `t_link_policy_docs_in_sync` 执行,`retired-mechanisms` 由 `t_docs_no_dead_mechanisms`
-执行。一个用例执行两条事实是正常的 —— 它们查的是同一批载体的不同侧面。
+执行,`contract-rationale-pointer` 由 `t_contract_rationale_split` 执行(票 07)。
+一个用例执行两条事实是正常的 —— 它们查的是同一批载体的不同侧面。
+
+⚠️ `contract-rationale-pointer` **不**走 `_sync_targets()` 取载体:它的载体是"指针解析出来的
+那一份",路径只存在于 `contract.json` 的 `rationalePointer` 里。若在这里再写一遍路径,就制造
+了第二个出生地 —— 改名时两处不同步,红的又是守卫而不是它要守的东西。
 
 **载体数下限**是防「载体表被删掉一行」的闸。光靠列举拦不住:少一行就少扫一份文件,
 扫描本身不会报错,而少扫这件事没有任何可见信号。下限把"少扫"变成一条失败:
@@ -84,7 +98,7 @@ README 与 ANSWER-SPEC 之间已经对不上（`1` 一处写「星空企业版/�
 | `maxKeywords` | `src/kd/contract.json` 的 `limits.maxKeywords` | 1 | `SKILL.md` 的「收词上限」那一段（说明行带数字，指针在相邻行；计数按文档份） |
 | `productIds` | `src/kd/contract.json` 的 `productIds.names` | 3 | `README.md`（CLI 速查）/ `ANSWER-SPEC.md`（值→含义表）/ `SKILL.md`（产品线判定节） |
 | `truncatedValues` | `src/kd/contract.json` 的 `read.truncatedValues` | 2 | `ANSWER-SPEC.md`（反例节，既有钉子要求它在）/ `SKILL.md`（逐档行动表） |
-| `otherVisibility` | `src/kd/contract.json` 的 `search.note_otherSkipped` | 4 | `README.md`（`otherSkipped` 字段说明）/ `GLOSSARY.md`（other 档词条）/ `SKILL.md`（`--include-other` 触发条件）/ `ANSWER-SPEC.md`（判定信号） |
+| `otherVisibility` | `docs/contract-rationale.md` 的 `search.note_otherSkipped` | 4 | `README.md`（`otherSkipped` 字段说明）/ `GLOSSARY.md`（other 档词条）/ `SKILL.md`（`--include-other` 触发条件）/ `ANSWER-SPEC.md`（判定信号） |
 
 两条纪律：
 
@@ -97,3 +111,5 @@ README 与 ANSWER-SPEC 之间已经对不上（`1` 一处写「星空企业版/�
 由 `t_link_policy_docs_in_sync` 执行，登记在本文件的「事实表」里，不在这里重复计一遍。
 ⚠️ `otherVisibility` 目前**只有散文声明**（`search.note_otherSkipped` 解释「隐藏必须可见」），
 没有一个可执行的布尔键 —— 这是已知的洞，额度先按现状登记；把它提升成真正的声明键时本表同步收窄。
+2026-11-17（票 07）起它的出生地是 `docs/contract-rationale.md` 的同名小节：**散文归论证档案，
+声明只留代码会读的键**。`t_numeric_facts_single_home` 解析「唯一真源」时会两处都找（见该用例注释）。

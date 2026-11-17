@@ -2384,7 +2384,7 @@ def _assert_read_projection_preserves_order():
     out = _detail_mod_obj.project_read(payload, "knowledge")
     ok(list(out) == ["updatedAt", "ok", "products"],
        "project_read 改变了键序: %r —— 声明管的是键集,键序由返回体自身的构造顺序承载"
-       "(见 contract.json 的 read.note_keyOrder)" % (list(out),))
+       "(见 docs/contract-rationale.md 的 read.note_keyOrder 小节)" % (list(out),))
     ok("未声明的键" not in out,
        "project_read 未按声明过滤(声明外的键漏出来了): %r" % (sorted(out),))
 
@@ -2620,6 +2620,12 @@ def t_link_policy():
     lp = _CONTRACT.get("linkPolicy") or {}
     ok(lp.get("status") != "pending",
        "linkPolicy.status 仍是 pending —— 链接专项(T1)尚未收口,文档会继续口径打架")
+    # `settledAt` 是 `status` 的**配对元数据**(那一格日期),不是散文:它随 status 一起进声明,
+    # 一起被这条断言读。票 07 的论证分居**不含它** —— 它不在票面那 27 个 note/evidence 键里,
+    # 把它算成"散文"会让 `t_contract_rationale_split` 的消费判据要求一个规格没要求搬的东西搬家。
+    ok(lp.get("settledAt"),
+       "linkPolicy 缺 `settledAt`(定案日期)—— 它与 `status: settled` 是一对,"
+       "只有状态没有日期,下次没人知道这政策是什么时候定的")
     rule = lp.get("rule") or {}
     for k in ("knowledge", "question", "article"):
         ok(k in rule, "linkPolicy.rule 缺 %s 的政策" % k)
@@ -2643,10 +2649,24 @@ def t_link_policy():
     ok(cp.link_for("不存在的kind") == "no-link",
        "未知 kind 的政策必须保守回落 no-link,实为 %r" % (cp.link_for("不存在的kind"),))
     ok(cp.link_for(None) == "no-link", "None kind 必须保守回落 no-link")
-    # 证据必须随政策一起在声明里 —— 否则下次没人知道凭什么这么定。
-    ev = lp.get("evidence") or {}
+    # 证据必须仍在**同一个仓库里**、且能顺着声明找过去 —— 否则下次没人知道凭什么这么定。
+    # ⚠️ **2026-11-17(票 07)改读新位置**:论证已按读者分居,`linkPolicy.evidence` 搬进
+    # `docs/contract-rationale.md`(理由见该文件开头)。判据仍是"政策可追溯到实测",但
+    # 追溯链多了一跳:声明 → `rationalePointer` → 证据小节。**这一跳必须真的走通**,
+    # 否则等于把证据搬到一个没人找得到的地方 —— 那比留在声明里更糟。
+    ev_doc = _rationale_doc_path()
+    # ⚠️ 判据是**节正文非空**,不是"文件里出现过这个节名":把某一小节的正文删空、
+    # 只留标题,子串判据照样绿 —— 那正是"证据丢了但看着还在"的形态(评审实测过)。
+    secs = _rationale_sections()
+    ok("linkPolicy.evidence" in secs,
+       "linkPolicy.evidence 既不在声明里、也不在 `%s` 的同名小节里 —— 链接政策的实测依据丢了,"
+       "下次没人知道凭什么这么定" % os.path.relpath(ev_doc, REPO))
     for k in ("knowledge", "article", "question"):
-        ok(ev.get(k), "linkPolicy.evidence 缺 %s 的实测依据(政策必须可追溯到实测)" % k)
+        sec = "linkPolicy.evidence." + k
+        ok(sec in secs and secs[sec].strip(),
+           "linkPolicy.evidence 缺 %s 的实测依据(政策必须可追溯到实测;2026-11-17 起它在"
+           " `%s` 的 `### %s` 小节,且该小节正文不得为空)"
+           % (k, os.path.relpath(ev_doc, REPO), sec))
 
 
 @case("offline: 链接政策落在生产路径上(三档都给 url;问答必须是长形式)")
@@ -2730,6 +2750,65 @@ _SYNC_DOC = os.path.join(REPO, "docs", "agents", "doc-sync-targets.md")
 # 会话层的文档(装机单元里的 SKILL.md)。数字类事实的重述额度与指针存在性两条钉子都扫它。
 _DOC_SKILL = os.path.join(REPO, "skills", "kingdee-knowledge", "skills", "kingdee-knowledge", "SKILL.md")
 _CONTRACT_SOURCE = os.path.join(SRC, "kd", "contract.json")
+
+
+def _rationale_doc_path():
+    """`contract.json` 的 `rationalePointer` 解析出来的论证档案绝对路径。
+
+    ⚠️ **路径只从声明里读,不在用例里另写一份字面量**(票 07)。写死在用例里的话,
+    论证档案改名之后红的是**守卫**而不是它要守的一致性 —— 这正是 2026-11-11
+    `CONTEXT.md` 改名那次踩过的坑(见 `docs/agents/doc-sync-targets.md` 开头)。
+    解析失败时返回一个**必然不存在**的路径,让调用方的 `exists` 断言给出可读的失败,
+    而不是在 helper 里抛一个与现场无关的异常。
+    """
+    import re as _re
+    ptr = (_CONTRACT.get("rationalePointer") or "") if isinstance(_CONTRACT, dict) else ""
+    m = _re.search(r"`?([\w./-]*contract-rationale\.md)`?", str(ptr))
+    if not m:
+        return os.path.join(REPO, "docs", "__rationalePointer-未声明__.md")
+    return os.path.join(REPO, m.group(1))
+
+
+def _rationale_sections():
+    """论证档案 → {节标题: 正文文本}。三处判据共用一份解析,口径不许各写一遍。
+
+    ⚠️ 这份 helper 存在的理由是评审抓到的那件事:初版三处调用方各解析一遍、口径还
+    不一致(一处按子串、一处按 dict、一处按 set),于是"节在不在"与"节正文空不空"
+    在不同用例里能得出不同答案 —— 同一件事两套判据。
+    节标题取 `## ` 与 `### ` 两种:顶层键是 `##`,嵌在 `productIds.evidence` 里的那个
+    `note` 是 `###`(它跟着父节走)。正文 = 该标题之后、下一个任意级标题之前的全部行。
+    """
+    txt = open(_rationale_doc_path(), encoding="utf-8").read()
+    # ⚠️ 两级标题的**归属不同**,这是评审抓到的那处假绿的反面:
+    #   * `## X` 的正文 = 它自己那几行 **+ 它下面所有 `###` 子节**(子节是它的细目);
+    #   * `### X.Y` 的正文 = 只有它自己那几行。
+    # 只按"下一个任意级标题"切的话,`## productIds.evidence` 的正文会变成空串
+    # (它整篇都是子节),于是"父节正文非空"这条对它就变成了恒假 —— 而文件其实好好的。
+    out, cur_h1, cur_h2, buf1, buf2 = {}, None, None, [], []
+
+    def _flush():
+        if cur_h2 is not None:
+            out[cur_h2] = "\n".join(buf2)
+        if cur_h1 is not None:
+            out[cur_h1] = "\n".join(buf1 + buf2)
+
+    for line in txt.split("\n"):
+        if line.startswith("## "):
+            _flush()
+            cur_h1, cur_h2, buf1, buf2 = line[3:].strip(), None, [], []
+        elif line.startswith("### "):
+            if cur_h2 is not None:
+                out[cur_h2] = "\n".join(buf2)
+            cur_h2, buf2 = line.lstrip("#").strip(), []
+        else:
+            if cur_h2 is not None:
+                buf2.append(line)
+            elif cur_h1 is not None:
+                buf1.append(line)
+    _flush()
+    return out
+
+
 # 版本史/已废止段落里的提法**不是指针**:它们记录的是当时怎么写,不能代替
 # "现行政策去哪看"。判据要能区分这两件事,否则删掉指针也照样绿。
 _HISTORY_MARKS = ("版本 6", "版本 v6", "已推翻", "已废止", "已过期", "当时",
@@ -3181,6 +3260,59 @@ def t_doc_pointers_resolve():
        " + `WORD-SPLITTING.md` 4 条;实际 11)—— 太少,可能是正则或豁免规则吃掉了一切"
        "导致的假绿。余量只留 1 条:留多了,某份文档的指针被整段删掉在计数上仍是绿的"
        % checked)
+
+    # ⑥ **指针指向的是"键"而不是"文件"的那一类,也要能追到。**
+    #    ⚠️ 上面 ①–⑤ 只认 `\`…*.md\`` 这种文件指针。2026-11-17(票 07)评审抓到的洞:
+    #    `SKILL.md` 里写着「留证在 `contract.json` 的 `productIds.evidence`」,而该键已随
+    #    论证搬走 —— 子串判据看不见它,于是断了也全绿。现在 `contract.json` 有了
+    #    `rationalePointer`,**任何文档里出现的契约键路径**都应当能在两处之一解析到:
+    #    声明本身,或论证档案的同名小节。这是 ①②⑤ 的统一延伸:判据始终是**解析后存在**。
+    #    ⚠️ 只扫**人写的载体**(上面那两份文档 + 两份技能 reference);代码注释里出现键路径
+    #    是常态且不面向读者,不在此列。
+    key_docs = docs + [os.path.join(os.path.dirname(_DOC_SKILL), "ANSWER-SPEC.md"),
+                       os.path.join(os.path.dirname(_DOC_SKILL), "CITATION-EVIDENCE.md")]
+    key_ptr = _re.compile(r"`((?:search|read|limits|productIds|linkPolicy)"
+                          r"(?:\.[A-Za-z_][A-Za-z0-9_]*)+)`")
+    secs = _rationale_sections()
+
+    def _resolve_key(path_parts):
+        node = _CONTRACT
+        for part in path_parts:
+            if not isinstance(node, dict) or part not in node:
+                return False
+            node = node[part]
+        return True
+
+    dead_keys, stale_say = [], []
+    for path in key_docs:
+        if not os.path.exists(path):
+            continue
+        rel = os.path.relpath(path, REPO)
+        for lineno, line in enumerate(open(path, encoding="utf-8").read().split("\n"), 1):
+            for m in key_ptr.finditer(line):
+                key = m.group(1)
+                in_decl = _resolve_key(key.split("."))
+                if not in_decl and key not in secs:
+                    dead_keys.append("%s → `%s`" % (rel, key))
+                    continue
+                # ⚠️ **判据要能抓住"句子说的是错地方"** —— 这是 2026-11-17 评审抓到的
+                # 那处假绿的根:SKILL.md 写着「留证在 `contract.json` 的 `productIds.evidence`」,
+                # 而该键已搬走。只看"这个键能不能在**某处**解析到"会放过它(论证档案里
+                # 同名小节就在,于是照绿)。故加一问:这一行说它在 `contract.json` 里时,
+                # 它**真的**还在声明里吗?
+                if (not in_decl) and key in secs and "contract.json" in line:
+                    stale_say.append("%s:%d 说它在 `contract.json` 里,而声明里已经没有了: %s"
+                                     % (rel, lineno, line.strip()[:100]))
+    ok(not dead_keys,
+       "这些文档里的**契约键指针**两处都找不到(声明里没有、论证档案里也没有同名小节):\n  "
+       + "\n  ".join(sorted(set(dead_keys)))
+       + "\n键路径就是论证档案的节标题 —— 论证搬走时,指向它的键路径指针也要同批改掉。"
+       "若这一行是在记录**已删除**的旧键,请在同一行写明「已删/已搬」并给出新落点。")
+    ok(not stale_say,
+       "这些行的**键指针说错了地方**(键已不在 `contract.json` 里,而在论证档案的同名小节):\n  "
+       + "\n  ".join(sorted(set(stale_say)))
+       + "\n读者照这句话去声明里找,会找到一个已经不存在的键。改法:指向论证档案,"
+       "或指向 `contract.json` 的 `rationalePointer`(声明里唯一还指向论证的东西)。")
     # ⑤ 拆词规范**必须仍有一条活指针**。票 05 把那一节搬出 SKILL.md,搬家的两个坏方向
     #    都要能被抓到:搬完忘了留指针 ⇒ reference 成了没人读得到的孤儿;留了指针却删了文件
     #    ⇒ 断链(① 已经抓)。这里补的是前者 —— 它没有可见信号:文件在盘上,光标没了。
@@ -3212,6 +3344,185 @@ def t_doc_pointers_resolve():
        "不是文件里随便哪处出现过:放在别处(如末尾「禁止事项」)时,agent 得先读完整个文件才回头"
        "去找,而它恰恰是在第 2 步卡住的。拆词是召回效果的主要变量(ADR-0016 之后全在调用方)。")
 
+
+
+@case("offline: 论证与数据分居 —— contract.json 只留代码会读的键,论证在新址且指针活着")
+def t_contract_rationale_split():
+    """**论证与数据分居的钉子**(票 07,2026-11-17)。
+
+    `contract.json` 同时是 schema、变更日志、实测档案:27 个 `note`/`evidence` 键里有
+    9 244 B(45%)是"为什么这么定"的散文,**代码一个都不读** —— 改一个数字得先趟过去。
+    本票按**读者**把它们分居:数据留声明,论证搬进 `docs/contract-rationale.md`。
+
+    一条钉子管四个方向,缺一个就漏一种回去的路:
+
+      ① **指针活着**:顶层的 `rationalePointer` 指向的 `.md` 必须真在盘上。
+         指针字符串写错不会有任何信号(同 `t_doc_pointers_resolve` 的纪律:判据是
+         **解析后存在**,不是 grep 到了)。⚠️ 而且它指向的文件**不得**在技能目录里:
+         它是维护者读的仓库侧文档,装机单元只拷技能目录,放进去等于让安装包多背 21 KB。
+
+      ② **声明里不再有论证键**:这些键在 `contract.json` 里必须**不存在**(不是留空串)。
+         留空串是"声明了但没人读"的化石形态 —— 本仓点名批评过(见 `_config.py:176`
+         的"声明必须有消费者")。判据按**键名**认(`note` / `note_*` / `evidence` /
+         `evidenceDoc` / `falseNegatives` / `loginState` / `forbidden` / `settledAt`),
+         因为它们就是"散文"的形态,不是散落在某处的普通数据键。
+
+      ③ **新址有落点且非空**:`docs/contract-rationale.md` 里每个被搬走的键路径必须
+         有同名二级标题、且该节正文非空。⚠️ 判据是**节标题 + 正文**,不是"文件里出现过
+         这个词":文件里出现一次 `note_totalRemoved` 可能只出现在索引表里,正文早被删了
+         —— 那正是"搬丢了"最像成功的形态。
+
+      ④ **判断依据是"代码会不会读它",不是"文件该不该瘦"**:故本条**不**要求文件体积,
+         而要求**留在声明里的每个键仍有消费者**(见下)。体积只是症状。
+
+    ⚠️ ③ 与 ② 是**两个方向**:只在一边删或只在一边补都红。这正是票面「先建新址、再把
+    指针放进原处」那条顺序要求留下的两个中间态 —— 中间态可以红,但**不能绿着交付**。
+    """
+    import re as _re
+
+    MOVED = (
+        # 顶层
+        "note",
+        # search
+        "search.note", "search.note_resultKeys", "search.note_commentKeyInCommon",
+        "search.note_contractCfgLoaded", "search.note_totalRemoved",
+        "search.note_otherSkipped", "search.note_routesDegradedRemoved",
+        # read
+        "read.note", "read.note_conditional", "read.note_statsInjection",
+        "read.note_keyOrder", "read.note_truncatedValues", "read.note_consumer",
+        # limits
+        "limits.note", "limits.rate.note", "limits.note_maxKeywords",
+        "limits.note_maxDetail",
+        # productIds
+        "productIds.note", "productIds.evidence",
+        # linkPolicy
+        "linkPolicy.note", "linkPolicy.evidence", "linkPolicy.falseNegatives",
+        "linkPolicy.loginState", "linkPolicy.forbidden", "linkPolicy.evidenceDoc",
+    )
+    # 27 个论证键 = 26 个独立小节 + 1 个嵌在 `productIds.evidence` 里的 `note`
+    # (它跟着父节走,故不单列;票面那个 27 就是这么来的)。
+    ok(len(MOVED) == 26,
+       "票面记的是 27 个 note/evidence 键(26 个独立小节 + productIds.evidence.note),"
+       "清单里只有 %d 条 —— 清单自己漏了,下面的 ②③ 就只是扫了剩下那几条" % len(MOVED))
+
+    # ① 指针活着,且不在装机单元里。
+    ptr = _CONTRACT.get("rationalePointer")
+    ok(isinstance(ptr, str) and ptr.strip(),
+       "contract.json 顶层缺 `rationalePointer` —— 论证搬走之后,维护者从声明里再也"
+       "找不到它去哪了(声明与论证的指针是这次分居唯一留在地上的东西)")
+    m = _re.search(r"`?([\w./-]*contract-rationale\.md)`?", ptr or "")
+    ok(m, "rationalePointer 里没有指向 `contract-rationale.md` 的路径: %r" % (ptr,))
+    doc_path = os.path.join(REPO, m.group(1))
+    ok(os.path.exists(doc_path),
+       "rationalePointer 指向 %r,而该文件不在盘上 —— 指针字符串写对了,目标却没了"
+       "(判据是**解析后存在**,不是 grep 到了)" % (m.group(1),))
+    skill_root = os.path.dirname(os.path.dirname(_DOC_SKILL)) + os.sep
+    ok(not os.path.abspath(doc_path).startswith(skill_root),
+       "论证档案落在技能目录 %s 里了 —— 那是装机单元,只拷这一个目录;"
+       "它是维护者读的仓库侧文档,放进安装包等于让每次装机多背 21 KB"
+       % os.path.relpath(skill_root, REPO))
+
+    # ② 声明里不再有论证键(按键名形态认,不按路径写死 —— 否则新增一处散文就逃了)。
+    # ⚠️ `settledAt` **刻意不在这个名单里**:它是 `status` 的配对元数据(一格日期),
+    # 不是散文。票面那 27 个键也确实不含它 —— 把它算进来会让本条去要求一个"规格没要求
+    # 搬的东西"必须搬走(票 07 评审抓到的范围蔓延,已撤回)。
+    PROSE_NAME = _re.compile(r"^(note|note_\w+|evidence|evidence_\w+|evidenceDoc|"
+                             r"falseNegatives|loginState|forbidden)$")
+    left = []
+
+    def _walk(node, path):
+        if isinstance(node, dict):
+            for k, v in node.items():
+                if PROSE_NAME.match(str(k)):
+                    left.append(path + "." + str(k) if path else str(k))
+                _walk(v, path + "." + str(k) if path else str(k))
+        elif isinstance(node, list):
+            for i, v in enumerate(node):
+                _walk(v, "%s[%d]" % (path, i))
+
+    _walk(_CONTRACT, "")
+    ok(not left,
+       "contract.json 里仍有论证键(散文):\n  " + "\n  ".join(left)
+       + "\n它们是给**人**读的,代码一个都不读。搬进 `docs/contract-rationale.md`"
+       "同名小节(键路径就是节标题),声明里只留 `rationalePointer`。"
+       "⚠️ 不要留空串:留空串是『声明了但没人读』的化石,与本仓『声明必须有消费者』冲突")
+
+    # ③ 新址有落点、且**正文非空**(不是只出现在索引表里)。
+    secs = _rationale_sections()
+    missing = [p for p in MOVED if p not in secs]
+    ok(not missing,
+       "这些键搬走之后在 %s 里**没有同名小节** —— 搬丢了:\n  %s"
+       % (os.path.relpath(doc_path, REPO), "\n  ".join(missing)))
+    empty = [p for p in MOVED if p in secs and not secs[p].strip()]
+    ok(not empty,
+       "这些小节只有标题、正文是空的 —— 标题留着而内容没了,是最像『搬完了』的形态:\n  "
+       + "\n  ".join(empty))
+    # 光有"非空"挡不住"被换成一个字/一句占位"。故设一道**长度下限**:短文小节(如
+    # `productIds.evidence.87`)原文 40+ 字,长文小节数百字,任何一节掉到 20 字以下都说明
+    # 内容被削掉了。
+    # ⚠️ **已知边界,不假装覆盖**:这里**不逐字比对原文**。要逐字比对就得把 9 073 字的原文
+    # 再存一份进套件 —— 那正是本票在治的"同一段话两个出生地",而且两份会各自漂移。
+    # 逐字那一次是**搬家时**用脚本整体核对的(27 键全部命中,零丢失),属一次性验收动作,
+    # 见票 07 的交付记录。日常回归守的是"节还在、还有实质内容",不是"逐字未改"。
+    stubs = {p: secs[p].strip() for p in MOVED
+             if p in secs and len(secs[p].strip()) < 20}
+    ok(not stubs,
+       "这些小节短到只剩一句占位(不足 20 字)—— 论证被削掉了:\n  "
+       + "\n  ".join("%s (%d 字)" % (k, len(v)) for k, v in stubs.items()))
+
+    # ④ 守住「判据是代码会不会读它」的反面:声明里剩下的键必须**仍有消费者**。
+    #    否则本次分居就成了"把有消费者的键也挪走"或"留下没人读的键"。
+    #
+    #    ⚠️ 判据下沉到**叶子键**,不只查顶层标量。只查顶层会漏掉真正的病灶:一个整段
+    #    (`search` / `limits` …)被搬空或新加进来而没有任何取值函数读它,顶层照旧"有键"
+    #    —— `search.note_*` 正是这样在没人读的情况下活了两年的。
+    #    ⚠️ 口径是"键名在**代码或本套件**里以字符串字面量出现过":本仓取值形态一律是
+    #    `_contract().get("search").get("topKeys")` 这种字面键名,没有动态拼键;动态拼键
+    #    若将来出现,由各键自己的行为用例兜底(如 `t_rate_limit_values`)。
+    #    ⚠️ **已知边界(不假装覆盖)**:本用例自己也算"消费者",故 `rationalePointer` 在
+    #    这一条上恒绿 —— 它的真消费者是**维护者**而不是代码,任何源码扫描都证明不了这件事。
+    #    它另由本条 ① 段的"解析后存在"钉住(那才是它的判据)。把本用例排除掉只会把恒绿
+    #    藏起来,不如写明。
+    code_txt = ""
+    for root, _dirs, files in os.walk(os.path.join(SRC, "kd")):
+        for fn in sorted(files):
+            if fn.endswith(".py"):
+                code_txt += code_minus_comments(os.path.join(root, fn))
+    consumers = code_txt + open(os.path.abspath(__file__), encoding="utf-8").read()
+
+    def _leaf_keys(node, path, out):
+        if isinstance(node, dict):
+            for k, v in node.items():
+                p = path + "." + str(k) if path else str(k)
+                if isinstance(v, (dict, list)) and v:
+                    _leaf_keys(v, p, out)
+                else:
+                    out.append((p, str(k)))
+        elif isinstance(node, list):
+            for i, v in enumerate(node):
+                _leaf_keys(v, "%s[%d]" % (path, i), out)
+
+    leaves = []
+    _leaf_keys(_CONTRACT, "", leaves)
+    ok(len(leaves) >= 20,
+       "只解析出 %d 个叶子键(实测基线 40+)—— 遍历写坏了,这条在扫空气" % len(leaves))
+    # 已知的合法例外,逐条写明理由(不靠"恰好命中"混过去):
+    #   * `productIds.names.*` —— 编号表的**标签**。代码只取 `default`(见
+    #     `_config.default_product_id`),标签由人读、由 `docs/agents/doc-sync-targets.md`
+    #     的 `productIds` 重述额度钉子整体比对(它读整个 `names` dict,不逐个字面量)。
+    #     这不违反"声明必须有消费者":消费者是**文档与调用层**,不是内核代码 —— 票 07 的
+    #     判据是"别把有消费者的键搬走",不是"每个键都必须被 .py 读"。
+    #   * 其余一律不许豁免。要加,必须在这里写清"真消费者是谁"。
+    # ⚠️ 也是给下一个人看的:不要为了让这条变绿而删数据。
+    EXEMPT_LEAF_KEYS = {"productIds.names.%s" % n for n in ("93", "87", "1", "2", "0")}
+    orphans = [p for p, k in leaves
+               if p not in EXEMPT_LEAF_KEYS
+               and ('"%s"' % k) not in consumers and ("'%s'" % k) not in consumers]
+    ok(not orphans,
+       "contract.json 这些叶子键在代码与本套件里都读不到(零消费者): %r\n"
+       "本仓硬纪律:『声明必须有消费者,否则单一来源是假的』(见 _config.py:176)。\n"
+       "它们要么该被代码读,要么该跟论证一起搬走 —— 不能以「数据」的身份留在声明里。\n"
+       "⚠️ 若确有合法例外,把它写进 EXEMPT_LEAF_KEYS 并在旁边写明理由。" % (orphans,))
 
 
 @case("offline: 术语表只剩术语(版本史在 ADR 里;实现细节不得回流正文)")
@@ -3447,14 +3758,29 @@ def t_numeric_facts_single_home():
         return s.strip()
 
     names = _CONTRACT["productIds"]["names"]
+    # 「唯一真源的键路径」现在有两个可能落点(票 07 的论证与数据分居之后):
+    #   * `contract.json` —— 代码会读的数据键,取值即见;
+    #   * `docs/contract-rationale.md` 的**同名小节** —— 只有散文的声明(如 `otherVisibility`)
+    #     住在那里,因为它是给人读的论证,代码一个都不读。
+    # ⚠️ 判据仍是**解析后存在**,不是"字符串出现过":两处都没有这个名字就是"指针指向空气"。
+    # ⚠️ 也**不**在额度表里加一列去区分两处:表里那一列叫「唯一真源(声明键)」,而节标题
+    # 就是原键路径 —— 同一个名字,两个落点,读者照名字找得到就够了。
+    _rat_txt = open(_rationale_doc_path(), encoding="utf-8").read() \
+        if os.path.exists(_rationale_doc_path()) else ""
+    _rat_secs = {ln[3:].strip() for ln in _rat_txt.split("\n") if ln.startswith("## ")}
+
     wrong, counts = [], {}
     for fact, (decl, quota) in sorted(budgets.items()):
         node = _CONTRACT
         for part in decl.split("."):
             node = node.get(part) if isinstance(node, dict) else None
-            ok(node is not None,
-               "额度表把 %r 的唯一真源登记成 %r,而 contract.json 里没有这个键 —— 指针指向空气"
+        if node is None:
+            ok(decl in _rat_secs,
+               "额度表把 %r 的唯一真源登记成 %r,而 contract.json 与论证档案的同名小节里"
+               "都没有这个名字 —— 指针指向空气。若该事实只剩散文声明(没有可执行的声明键),"
+               "请把它的那一节写进论述档案,节标题就用这个键路径"
                % (fact, decl))
+            node = {}          # 只有散文的声明:可执行的值不存在,下面的值比对天然跳过
         if node is None:
             continue
         want_nums = [str(node)] if isinstance(node, int) else []
@@ -3501,7 +3827,8 @@ def t_numeric_facts_single_home():
                                          % (where, v, want_vals))
                     restated = bool(quoted) or any(v in line for v in want_vals)
                 elif fact == "otherVisibility":
-                    # 这一项的声明只有散文(`search.note_otherSkipped` 解释「隐藏是默认行为」),
+                    # 这一项的声明只有散文(`search.note_otherSkipped` 解释「隐藏是默认行为」,
+                    # 2026-11-17 起在 docs/contract-rationale.md 的同名小节),
                     # 没有可执行的值可派生,故标记只能手写 —— 已知的洞,登记在额度表里。
                     if is_code:
                         continue
@@ -6003,7 +6330,8 @@ def t_question_url_never_substitutes_item_id():
     #        等价于把读者送到一个打不开的地址;
     #      * **纯空白回答号**(`"   "`)→ strip 后为空 ⇒ 必须**给不出链接**。
     #        不归一会拼出 `/questions/<qid>/answers/   ` —— 一个**形状合法但打不开**
-    #        的链接,正是 `linkPolicy.forbidden` 要防的那类(读者以为资料在那里)。
+    #        的链接,正是 `linkPolicy.forbidden` 要防的那类(读者以为资料在那里;
+    #        那两条禁令现在在 docs/contract-rationale.md 的 `linkPolicy.forbidden` 小节)。
     for dirty, why in ((" 11 ", "前后带空格"), ("\t11\n", "制表/换行")):
         got = cp.compose_url("question", "6001", [(dirty, None)])
         ok(got == "https://vip.kingdee.com/questions/6001/answers/11",
@@ -6100,7 +6428,7 @@ def t_question_detail_url_placeholder_pins_key_order():
 
     治的病:占位行自称"保留这行只为**键序不变**",但**没有任何断言管它** ——
     删掉它套件仍全绿,而键序**确实漂**(`url` 从第 6 位掉到末尾)。
-    本仓的键序是**已声明**的对外可观测事项(`contract.json` 的 `read.note_keyOrder`),
+    本仓的键序是**已声明**的对外可观测事项(`docs/contract-rationale.md` 的 `read.note_keyOrder` 小节),
     也已有钉子 `_assert_read_projection_preserves_order` —— 但它验算的是
     `project_read`(投影**不改**键序),**管不到 `_question_detail` 自身的字面构造顺序**。
     故准确定性是**钉子覆盖有缺口**,不是"约束无人管":本项把缺口补上。

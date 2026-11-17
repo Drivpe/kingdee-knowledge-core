@@ -252,7 +252,9 @@ _FALLBACK_READ_BY_TYPE_KEYS = {
 # **条件键**:有才留(`bestAnswer` 依赖上游给了采纳答案、`truncated` 依赖发生截断、
 # `answers` 依赖 `with_answers` 分支)。它们与"恒在键"同属投影白名单,只是**不保证出现**。
 _FALLBACK_READ_CONDITIONAL_BY_TYPE = {"question": ("bestAnswer", "truncated", "answers")}
-# `truncated` 的两值枚举(见 contract.json 的 `read.note_truncatedValues`)。
+# `truncated` 的两值枚举(声明是 contract.json 的 `read.truncatedValues`;
+# 为什么必须是两个值、压成一个会怎样,见 docs/contract-rationale.md 的
+# `read.note_truncatedValues` 小节)。
 # 具名映射而**不是**有序元组:代码里要按语义取值(`["answerLimit"]`),靠下标
 # 取第二值会把"枚举顺序"变成隐式契约(改动顺序即静默改语义)。
 _FALLBACK_READ_TRUNCATED_VALUES = {"answerLimit": "answer_limit",

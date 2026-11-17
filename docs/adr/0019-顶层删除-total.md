@@ -8,7 +8,8 @@ ADR-0017(同一轮的上游读数)、ADR-0018(`K1` 链接单点化,**引用了�
 `docs/specs/2026-09-29-验收记录.md`
 
 > **这条 ADR 是补写的。** v6.9 的破坏性变更当时只落下三处产地 —— `contract.json` 的
-> `search.note_totalRemoved`、`_config.py` 的版本注释、以及 `GLOSSARY.md` 的版本段 ——
+> `search.note_totalRemoved`(2026-11-17 起该键已搬进
+> `docs/contract-rationale.md` 的同名小节)、`_config.py` 的版本注释、以及 `GLOSSARY.md` 的版本段 ——
 > 而 `docs/adr/` 里**没有任何一条**正本记录。结果是下游先有了引用、上游没有正本:
 > `docs/adr/0018-K1链接单点化.md:107` 写着「处置原则同顶层 `total` 那次:**写清,不假装**
 > (那个字段本身已于 v6.9 删除)」,读者顺着这句话去找那次决策,找到的是空的。
@@ -119,8 +120,9 @@ ADR-0017(同一轮的上游读数)、ADR-0018(`K1` 链接单点化,**引用了�
 ⚠️ **这不是"少测了"**:三段断言钉的是一个既无数值稳定性、又无行动价值的合成量;
 留下的 `results` 长度与四元组信号才是可行动的。测得更少的地方,恰好也是不该测的地方。
 
-单一真源与理由的去处:`src/kd/contract.json` 的 `search.note_totalRemoved`
-(键级说明),本 ADR 记"为什么这么定"与当时的实测。
+单一真源与理由的去处:`docs/contract-rationale.md` 的 `search.note_totalRemoved` 小节
+(2026-11-17 票 07 起,论证按读者从 `src/kd/contract.json` 分居到该文件;
+`contract.json` 里只剩一个指向它的 `rationalePointer`),本 ADR 记"为什么这么定"与当时的实测。
 
 ## 备选(不选)
 
@@ -153,7 +155,8 @@ ADR-0017(同一轮的上游读数)、ADR-0018(`K1` 链接单点化,**引用了�
 
 > 本节记的是**这份 ADR 自己的来历**,不是又一条决策。放在末尾,免得它抢在决策前面。
 
-v6.9 删 `total` 时,决策只落在三处:`contract.json` 的 `search.note_totalRemoved`(键级说明)、
+v6.9 删 `total` 时,决策只落在三处:`contract.json` 的 `search.note_totalRemoved`(键级说明;
+2026-11-17 起在 `docs/contract-rationale.md` 的同名小节)、
 `_config.py` 的版本注释(摘要)、`GLOSSARY.md` 的版本段(清单)。这三处都是**结论**,
 没有一处记**判据与边界** —— 而这正是 ADR 该承担的。
 

@@ -63,7 +63,7 @@ _URL_OF = {"knowledge": VIP + "/knowledge/%s",
 # 复发过一次),故正确收口是**删键**,不是给它补一个假消费者。
 # 证据链未丢:`other` 无可点网页形式的实测记录在
 # `docs/research/2026-09-29-额外类型链接形式复验.md`,并已完整承载于
-# `contract.json` 的 `linkPolicy.evidence.other`。
+# docs/contract-rationale.md 的 `linkPolicy.evidence.other` 小节。
 
 
 def _s(x):
@@ -117,7 +117,8 @@ def _pick_answer_id(answer_ids):
     不一。危害不是措辞问题:
       * `aid="   "`(纯空白):原实现 strip 后为空 → `None`;**不收口则拼出
         `/questions/<qid>/answers/   `** —— 一个**形状合法但打不开**的链接,
-        正是 `linkPolicy.forbidden` 要防的那一类(读者以为资料在那里);
+        正是 `linkPolicy.forbidden` 要防的那一类(读者以为资料在那里;
+        那两条禁令现在写在那份论证档案的 `linkPolicy.forbidden` 小节里);
       * `aid=" 11 "`:拼出带空格的 URL(上游做精确校验,等价于给错回答号)。
     归一化放在**本函数内**,因为清单侧与 read 侧**都经它**选回答号 —— 放在任一个
     调用点都只覆盖一半,那正是"同一事实两处推导"的老病。
@@ -170,6 +171,7 @@ def compose_url(kind, item_id=None, answers=None):
         # 拿帖子号顶替回答号会拼出 `/questions/<qid>/answers/<qid>` ——
         # 一个**看起来合法、实则错误**的链接:它不像短形式那样恒死(读者不会
         # 立刻发现打不开),故危害比短形式更大。依据是 `linkPolicy.forbidden[1]`
+        # (见 docs/contract-rationale.md 的同名小节)
         # 的同一条精神:**给不出正确的,就不给**。
         #   * 回答号已知 → `compose_url("question", 帖子号, [(回答号, None)])`;
         #   * 从候选集选 → `compose_url("question", 帖子号, [(回答号, 是否采纳), …])`。
