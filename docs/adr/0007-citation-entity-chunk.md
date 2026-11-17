@@ -1,6 +1,6 @@
 # ADR-0007:引用形态改为「标题 + entityId + chunkId」,废除网页 URL 引用
 
-日期:2026-09-06 | 状态:已采纳(票 #20 拍板立项) | 关联:ADR-0005(引用粒度词条继承)、docs/research/2026-09-06-official-ai-frontend-recon.md、docs/research/2026-09-06-product-routing-and-link-availability.md
+日期:2026-09-06 | 状态:已采纳(票 #20 拍板立项) | 关联:ADR-0005(引用粒度词条继承)、docs/research/2026-09-06-official-ai-frontend-recon.md(已于 2026-09-15 移出公开仓,全文在私有仓)、docs/research/2026-09-06-product-routing-and-link-availability.md
 
 ## 背景
 
