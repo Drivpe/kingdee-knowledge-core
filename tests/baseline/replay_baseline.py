@@ -298,6 +298,14 @@ def run_core(op, kwargs):
         try:
             result = core.search(**kwargs) if op == "search" else core.read(**kwargs)
             result = normalize(result)
+        except AssertionError:
+            # ⚠️ **本 harness 自己的守卫,不是内核行为** —— 必须原样上抛,
+            # 绝不能像普通异常那样被录进基线。理由:一旦录进去,--record 就会把
+            # "fixture 漏登记" 冻结成 "期望输出",之后每次重放都"通过" ——
+            # 那是用一处静默换另一处静默,正是本仓最忌的形态。
+            # (内核侧会先记一笔 ROUTE_BUG:AssertionError 不在 _net.UPSTREAM_FAILURES
+            #  里,属程序缺陷 → 响亮穿透,这是对的。)
+            raise
         except Exception as e:
             result = {"error": {"exception": type(e).__name__,
                                 "message": str(e),
@@ -342,6 +350,10 @@ def run_cli(argv, calls_path):
                           capture_output=True, text=True, env=env, cwd=REPO)
     with open(calls_path, encoding="utf-8") as f:
         calls = json.load(f)
+    if "fake 上游未登记该 URL" in proc.stderr or "未知的 __raise__ 取值" in proc.stderr:
+        # 同 run_core:这是 harness 守卫触发,不是内核行为,不得录进基线。
+        raise AssertionError("CLI 场景触发了 fake 上游守卫(基线禁止静默兜底): "
+                             + proc.stderr.strip()[:400])
     stdout = proc.stdout
     try:
         stdout = normalize(json.loads(stdout)) if stdout.strip() else ""
