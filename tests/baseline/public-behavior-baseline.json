@@ -1,0 +1,2751 @@
+{
+  "meta": {
+    "kernelVersion": "6.9",
+    "contractVersion": "v6.9",
+    "scenarioCount": 39,
+    "notes": [
+      "期望值是录制时在固定 fake 上游上的真实输出,不是从 contract.json 派生的。",
+      "stats.elapsedMs 为时序量,录制时归一为 <elapsedMs>;其余键与键序逐字冻结。",
+      "requests 是发往上游的 URL 清单(并发下完成顺序不定,故去重后排序),它冻结的是请求参数与每路请求次数,不冻结并发时序。",
+      "限速器不参与本基线:它的等待是时序量,且不影响 stats.upstreamCalls。"
+    ]
+  },
+  "scenarios": [
+    {
+      "requestCount": 2,
+      "requests": [
+        "https://vip.kingdee.com/api/search?text=%E8%B5%84%E4%BA%A7&page=1&pageSize=10&global=false&sortsType=1&productIds%5B0%5D=93",
+        "https://vip.kingdee.com/api/search?text=BOM&page=1&pageSize=10&global=false&sortsType=1&productIds%5B0%5D=93"
+      ],
+      "result": {
+        "ok": true,
+        "keywords": [
+          "资产",
+          "BOM"
+        ],
+        "queries": [
+          "资产",
+          "BOM"
+        ],
+        "routesPlanned": 2,
+        "effectiveProductId": 93,
+        "results": [
+          {
+            "type": "knowledge",
+            "id": "K1001",
+            "title": "资产卡片使用说明",
+            "url": "https://vip.kingdee.com/knowledge/K1001",
+            "snippet": "资产卡片用于登记资产卡片信息。",
+            "products": [
+              "星空旗舰版",
+              "资产管理",
+              "业务对象"
+            ],
+            "comments": 2,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ]
+          },
+          {
+            "type": "question",
+            "id": "91001",
+            "title": "应收单怎么对账",
+            "url": "https://vip.kingdee.com/questions/91001/answers/7002",
+            "snippet": "应收单对账的问题描述。",
+            "products": [
+              "应收管理"
+            ],
+            "comments": 2,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ],
+            "adopted": true,
+            "answersCount": 3,
+            "questionBody": "应收单怎么对账？"
+          },
+          {
+            "type": "article",
+            "id": "A2001",
+            "title": "资产卡片配置指南",
+            "url": "https://vip.kingdee.com/article/A2001",
+            "snippet": "资产卡片配置步骤。",
+            "products": [
+              "资产管理"
+            ],
+            "comments": 0,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ],
+            "supports": 5
+          },
+          {
+            "type": "knowledge",
+            "id": "K1002",
+            "title": "BOM版本文档",
+            "url": "https://vip.kingdee.com/knowledge/K1002",
+            "snippet": "BOM 版本正文。",
+            "products": [
+              "星空旗舰版"
+            ],
+            "comments": 0,
+            "hitRoutes": 1,
+            "routes": [
+              2
+            ]
+          },
+          {
+            "type": "knowledge",
+            "id": "K1003",
+            "title": "BOM结构文档",
+            "url": "https://vip.kingdee.com/knowledge/K1003",
+            "snippet": "BOM 结构正文。",
+            "products": [],
+            "comments": null,
+            "hitRoutes": 1,
+            "routes": [
+              2
+            ]
+          },
+          {
+            "type": "article",
+            "id": "A2002",
+            "title": "BOM配置文章",
+            "url": "https://vip.kingdee.com/article/A2002",
+            "snippet": "BOM 配置文章正文。",
+            "products": [
+              "星空旗舰版"
+            ],
+            "comments": 1,
+            "hitRoutes": 1,
+            "routes": [
+              2
+            ],
+            "supports": 2
+          },
+          {
+            "type": "question",
+            "id": "91002",
+            "title": "供应链计划怎么算",
+            "url": "https://vip.kingdee.com/questions/91002/answers/8001",
+            "snippet": "供应链计划问题描述。",
+            "products": [
+              "供应链计划"
+            ],
+            "comments": 4,
+            "hitRoutes": 1,
+            "routes": [
+              2
+            ],
+            "adopted": true,
+            "answersCount": 1,
+            "questionBody": "供应链计划怎么算？"
+          }
+        ],
+        "otherSkipped": 2,
+        "routeErrors": [],
+        "keywordsDropped": 0,
+        "scanNote": "多路清单:2/2 路完成,每路 pageSize=10,归并后 7 条(帖子级);隐藏 2 条罕见类型(课程/路径/专题等,见 otherSkipped;需显式打开才返回)",
+        "contractCfgLoaded": true,
+        "stats": {
+          "upstreamCalls": 2,
+          "elapsedMs": "<elapsedMs>"
+        }
+      },
+      "name": "search/basic_multi",
+      "mode": "core"
+    },
+    {
+      "requestCount": 1,
+      "requests": [
+        "https://vip.kingdee.com/api/search?text=%E8%B5%84%E4%BA%A7&page=1&pageSize=10&global=false&sortsType=1&productIds%5B0%5D=93"
+      ],
+      "result": {
+        "ok": true,
+        "keywords": [
+          "资产"
+        ],
+        "queries": [
+          "资产"
+        ],
+        "routesPlanned": 1,
+        "effectiveProductId": 93,
+        "results": [
+          {
+            "type": "knowledge",
+            "id": "K1001",
+            "title": "资产卡片使用说明",
+            "url": "https://vip.kingdee.com/knowledge/K1001",
+            "snippet": "资产卡片用于登记资产卡片信息。",
+            "products": [
+              "星空旗舰版",
+              "资产管理",
+              "业务对象"
+            ],
+            "comments": 2,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ]
+          },
+          {
+            "type": "question",
+            "id": "91001",
+            "title": "应收单怎么对账",
+            "url": "https://vip.kingdee.com/questions/91001/answers/7002",
+            "snippet": "应收单对账的问题描述。",
+            "products": [
+              "应收管理"
+            ],
+            "comments": 2,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ],
+            "adopted": true,
+            "answersCount": 3,
+            "questionBody": "应收单怎么对账？"
+          },
+          {
+            "type": "article",
+            "id": "A2001",
+            "title": "资产卡片配置指南",
+            "url": "https://vip.kingdee.com/article/A2001",
+            "snippet": "资产卡片配置步骤。",
+            "products": [
+              "资产管理"
+            ],
+            "comments": 0,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ],
+            "supports": 5
+          }
+        ],
+        "otherSkipped": 1,
+        "routeErrors": [],
+        "keywordsDropped": 0,
+        "scanNote": "多路清单:1/1 路完成,每路 pageSize=10,归并后 3 条(帖子级);隐藏 1 条罕见类型(课程/路径/专题等,见 otherSkipped;需显式打开才返回)",
+        "contractCfgLoaded": true,
+        "stats": {
+          "upstreamCalls": 1,
+          "elapsedMs": "<elapsedMs>"
+        }
+      },
+      "name": "search/product_default_omitted",
+      "mode": "core"
+    },
+    {
+      "requestCount": 1,
+      "requests": [
+        "https://vip.kingdee.com/api/search?text=%E8%B5%84%E4%BA%A7&page=1&pageSize=10&global=false&sortsType=1"
+      ],
+      "result": {
+        "ok": true,
+        "keywords": [
+          "资产"
+        ],
+        "queries": [
+          "资产"
+        ],
+        "routesPlanned": 1,
+        "effectiveProductId": 0,
+        "results": [
+          {
+            "type": "knowledge",
+            "id": "K1001",
+            "title": "资产卡片使用说明",
+            "url": "https://vip.kingdee.com/knowledge/K1001",
+            "snippet": "资产卡片用于登记资产卡片信息。",
+            "products": [
+              "星空旗舰版",
+              "资产管理",
+              "业务对象"
+            ],
+            "comments": 2,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ]
+          },
+          {
+            "type": "question",
+            "id": "91001",
+            "title": "应收单怎么对账",
+            "url": "https://vip.kingdee.com/questions/91001/answers/7002",
+            "snippet": "应收单对账的问题描述。",
+            "products": [
+              "应收管理"
+            ],
+            "comments": 2,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ],
+            "adopted": true,
+            "answersCount": 3,
+            "questionBody": "应收单怎么对账？"
+          },
+          {
+            "type": "article",
+            "id": "A2001",
+            "title": "资产卡片配置指南",
+            "url": "https://vip.kingdee.com/article/A2001",
+            "snippet": "资产卡片配置步骤。",
+            "products": [
+              "资产管理"
+            ],
+            "comments": 0,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ],
+            "supports": 5
+          }
+        ],
+        "otherSkipped": 1,
+        "routeErrors": [],
+        "keywordsDropped": 0,
+        "scanNote": "多路清单:1/1 路完成,每路 pageSize=10,归并后 3 条(帖子级);隐藏 1 条罕见类型(课程/路径/专题等,见 otherSkipped;需显式打开才返回)",
+        "contractCfgLoaded": true,
+        "stats": {
+          "upstreamCalls": 1,
+          "elapsedMs": "<elapsedMs>"
+        }
+      },
+      "name": "search/product_explicit_zero",
+      "mode": "core"
+    },
+    {
+      "requestCount": 1,
+      "requests": [
+        "https://vip.kingdee.com/api/search?text=%E8%B5%84%E4%BA%A7&page=1&pageSize=10&global=false&sortsType=1&productIds%5B0%5D=87"
+      ],
+      "result": {
+        "ok": true,
+        "keywords": [
+          "资产"
+        ],
+        "queries": [
+          "资产"
+        ],
+        "routesPlanned": 1,
+        "effectiveProductId": 87,
+        "results": [
+          {
+            "type": "knowledge",
+            "id": "K1001",
+            "title": "资产卡片使用说明",
+            "url": "https://vip.kingdee.com/knowledge/K1001",
+            "snippet": "资产卡片用于登记资产卡片信息。",
+            "products": [
+              "星空旗舰版",
+              "资产管理",
+              "业务对象"
+            ],
+            "comments": 2,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ]
+          },
+          {
+            "type": "question",
+            "id": "91001",
+            "title": "应收单怎么对账",
+            "url": "https://vip.kingdee.com/questions/91001/answers/7002",
+            "snippet": "应收单对账的问题描述。",
+            "products": [
+              "应收管理"
+            ],
+            "comments": 2,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ],
+            "adopted": true,
+            "answersCount": 3,
+            "questionBody": "应收单怎么对账？"
+          },
+          {
+            "type": "article",
+            "id": "A2001",
+            "title": "资产卡片配置指南",
+            "url": "https://vip.kingdee.com/article/A2001",
+            "snippet": "资产卡片配置步骤。",
+            "products": [
+              "资产管理"
+            ],
+            "comments": 0,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ],
+            "supports": 5
+          }
+        ],
+        "otherSkipped": 1,
+        "routeErrors": [],
+        "keywordsDropped": 0,
+        "scanNote": "多路清单:1/1 路完成,每路 pageSize=10,归并后 3 条(帖子级);隐藏 1 条罕见类型(课程/路径/专题等,见 otherSkipped;需显式打开才返回)",
+        "contractCfgLoaded": true,
+        "stats": {
+          "upstreamCalls": 1,
+          "elapsedMs": "<elapsedMs>"
+        }
+      },
+      "name": "search/product_explicit_87",
+      "mode": "core"
+    },
+    {
+      "requestCount": 1,
+      "requests": [
+        "https://vip.kingdee.com/api/search?text=%E8%B5%84%E4%BA%A7&page=1&pageSize=10&global=false&sortsType=1&productIds%5B0%5D=93"
+      ],
+      "result": {
+        "ok": true,
+        "keywords": [
+          "资产"
+        ],
+        "queries": [
+          "资产"
+        ],
+        "routesPlanned": 1,
+        "effectiveProductId": 93,
+        "results": [
+          {
+            "type": "knowledge",
+            "id": "K1001",
+            "title": "资产卡片使用说明",
+            "url": "https://vip.kingdee.com/knowledge/K1001",
+            "snippet": "资产卡片用于登记资产卡片信息。",
+            "products": [
+              "星空旗舰版",
+              "资产管理",
+              "业务对象"
+            ],
+            "comments": 2,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ]
+          },
+          {
+            "type": "question",
+            "id": "91001",
+            "title": "应收单怎么对账",
+            "url": "https://vip.kingdee.com/questions/91001/answers/7002",
+            "snippet": "应收单对账的问题描述。",
+            "products": [
+              "应收管理"
+            ],
+            "comments": 2,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ],
+            "adopted": true,
+            "answersCount": 3,
+            "questionBody": "应收单怎么对账？"
+          },
+          {
+            "type": "article",
+            "id": "A2001",
+            "title": "资产卡片配置指南",
+            "url": "https://vip.kingdee.com/article/A2001",
+            "snippet": "资产卡片配置步骤。",
+            "products": [
+              "资产管理"
+            ],
+            "comments": 0,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ],
+            "supports": 5
+          }
+        ],
+        "otherSkipped": 1,
+        "routeErrors": [],
+        "keywordsDropped": 0,
+        "scanNote": "多路清单:1/1 路完成,每路 pageSize=10,归并后 3 条(帖子级);隐藏 1 条罕见类型(课程/路径/专题等,见 otherSkipped;需显式打开才返回)",
+        "contractCfgLoaded": true,
+        "stats": {
+          "upstreamCalls": 1,
+          "elapsedMs": "<elapsedMs>"
+        }
+      },
+      "name": "search/product_explicit_none",
+      "mode": "core"
+    },
+    {
+      "requestCount": 1,
+      "requests": [
+        "https://vip.kingdee.com/api/search?text=%E8%B5%84%E4%BA%A7&page=1&pageSize=10&global=true&sortsType=1&productIds%5B0%5D=93"
+      ],
+      "result": {
+        "ok": true,
+        "keywords": [
+          "资产"
+        ],
+        "queries": [
+          "资产"
+        ],
+        "routesPlanned": 1,
+        "effectiveProductId": 93,
+        "results": [
+          {
+            "type": "knowledge",
+            "id": "K1001",
+            "title": "资产卡片使用说明",
+            "url": "https://vip.kingdee.com/knowledge/K1001",
+            "snippet": "资产卡片用于登记资产卡片信息。",
+            "products": [
+              "星空旗舰版",
+              "资产管理",
+              "业务对象"
+            ],
+            "comments": 2,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ]
+          },
+          {
+            "type": "question",
+            "id": "91001",
+            "title": "应收单怎么对账",
+            "url": "https://vip.kingdee.com/questions/91001/answers/7002",
+            "snippet": "应收单对账的问题描述。",
+            "products": [
+              "应收管理"
+            ],
+            "comments": 2,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ],
+            "adopted": true,
+            "answersCount": 3,
+            "questionBody": "应收单怎么对账？"
+          },
+          {
+            "type": "article",
+            "id": "A2001",
+            "title": "资产卡片配置指南",
+            "url": "https://vip.kingdee.com/article/A2001",
+            "snippet": "资产卡片配置步骤。",
+            "products": [
+              "资产管理"
+            ],
+            "comments": 0,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ],
+            "supports": 5
+          }
+        ],
+        "otherSkipped": 1,
+        "routeErrors": [],
+        "keywordsDropped": 0,
+        "scanNote": "多路清单:1/1 路完成,每路 pageSize=10,归并后 3 条(帖子级);隐藏 1 条罕见类型(课程/路径/专题等,见 otherSkipped;需显式打开才返回)",
+        "contractCfgLoaded": true,
+        "stats": {
+          "upstreamCalls": 1,
+          "elapsedMs": "<elapsedMs>"
+        }
+      },
+      "name": "search/global_true",
+      "mode": "core"
+    },
+    {
+      "requestCount": 1,
+      "requests": [
+        "https://vip.kingdee.com/api/search?text=%E8%B5%84%E4%BA%A7&page=1&pageSize=10&global=false&sortsType=0&productIds%5B0%5D=93"
+      ],
+      "result": {
+        "ok": true,
+        "keywords": [
+          "资产"
+        ],
+        "queries": [
+          "资产"
+        ],
+        "routesPlanned": 1,
+        "effectiveProductId": 93,
+        "results": [
+          {
+            "type": "knowledge",
+            "id": "K1001",
+            "title": "资产卡片使用说明",
+            "url": "https://vip.kingdee.com/knowledge/K1001",
+            "snippet": "资产卡片用于登记资产卡片信息。",
+            "products": [
+              "星空旗舰版",
+              "资产管理",
+              "业务对象"
+            ],
+            "comments": 2,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ]
+          },
+          {
+            "type": "question",
+            "id": "91001",
+            "title": "应收单怎么对账",
+            "url": "https://vip.kingdee.com/questions/91001/answers/7002",
+            "snippet": "应收单对账的问题描述。",
+            "products": [
+              "应收管理"
+            ],
+            "comments": 2,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ],
+            "adopted": true,
+            "answersCount": 3,
+            "questionBody": "应收单怎么对账？"
+          },
+          {
+            "type": "article",
+            "id": "A2001",
+            "title": "资产卡片配置指南",
+            "url": "https://vip.kingdee.com/article/A2001",
+            "snippet": "资产卡片配置步骤。",
+            "products": [
+              "资产管理"
+            ],
+            "comments": 0,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ],
+            "supports": 5
+          }
+        ],
+        "otherSkipped": 1,
+        "routeErrors": [],
+        "keywordsDropped": 0,
+        "scanNote": "多路清单:1/1 路完成,每路 pageSize=10,归并后 3 条(帖子级);隐藏 1 条罕见类型(课程/路径/专题等,见 otherSkipped;需显式打开才返回)",
+        "contractCfgLoaded": true,
+        "stats": {
+          "upstreamCalls": 1,
+          "elapsedMs": "<elapsedMs>"
+        }
+      },
+      "name": "search/sorts_type_zero",
+      "mode": "core"
+    },
+    {
+      "requestCount": 1,
+      "requests": [
+        "https://vip.kingdee.com/api/search?text=%E8%B5%84%E4%BA%A7&page=1&pageSize=10&global=false&sortsType=2&productIds%5B0%5D=93"
+      ],
+      "result": {
+        "ok": true,
+        "keywords": [
+          "资产"
+        ],
+        "queries": [
+          "资产"
+        ],
+        "routesPlanned": 1,
+        "effectiveProductId": 93,
+        "results": [
+          {
+            "type": "knowledge",
+            "id": "K1001",
+            "title": "资产卡片使用说明",
+            "url": "https://vip.kingdee.com/knowledge/K1001",
+            "snippet": "资产卡片用于登记资产卡片信息。",
+            "products": [
+              "星空旗舰版",
+              "资产管理",
+              "业务对象"
+            ],
+            "comments": 2,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ]
+          },
+          {
+            "type": "question",
+            "id": "91001",
+            "title": "应收单怎么对账",
+            "url": "https://vip.kingdee.com/questions/91001/answers/7002",
+            "snippet": "应收单对账的问题描述。",
+            "products": [
+              "应收管理"
+            ],
+            "comments": 2,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ],
+            "adopted": true,
+            "answersCount": 3,
+            "questionBody": "应收单怎么对账？"
+          },
+          {
+            "type": "article",
+            "id": "A2001",
+            "title": "资产卡片配置指南",
+            "url": "https://vip.kingdee.com/article/A2001",
+            "snippet": "资产卡片配置步骤。",
+            "products": [
+              "资产管理"
+            ],
+            "comments": 0,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ],
+            "supports": 5
+          }
+        ],
+        "otherSkipped": 1,
+        "routeErrors": [],
+        "keywordsDropped": 0,
+        "scanNote": "多路清单:1/1 路完成,每路 pageSize=10,归并后 3 条(帖子级);隐藏 1 条罕见类型(课程/路径/专题等,见 otherSkipped;需显式打开才返回)",
+        "contractCfgLoaded": true,
+        "stats": {
+          "upstreamCalls": 1,
+          "elapsedMs": "<elapsedMs>"
+        }
+      },
+      "name": "search/sorts_type_two",
+      "mode": "core"
+    },
+    {
+      "requestCount": 7,
+      "requests": [
+        "https://vip.kingdee.com/api/search?text=%E8%AF%8D1&page=1&pageSize=10&global=false&sortsType=1&productIds%5B0%5D=93",
+        "https://vip.kingdee.com/api/search?text=%E8%AF%8D2&page=1&pageSize=10&global=false&sortsType=1&productIds%5B0%5D=93",
+        "https://vip.kingdee.com/api/search?text=%E8%AF%8D3&page=1&pageSize=10&global=false&sortsType=1&productIds%5B0%5D=93",
+        "https://vip.kingdee.com/api/search?text=%E8%AF%8D4&page=1&pageSize=10&global=false&sortsType=1&productIds%5B0%5D=93",
+        "https://vip.kingdee.com/api/search?text=%E8%AF%8D5&page=1&pageSize=10&global=false&sortsType=1&productIds%5B0%5D=93",
+        "https://vip.kingdee.com/api/search?text=%E8%AF%8D6&page=1&pageSize=10&global=false&sortsType=1&productIds%5B0%5D=93",
+        "https://vip.kingdee.com/api/search?text=%E8%AF%8D7&page=1&pageSize=10&global=false&sortsType=1&productIds%5B0%5D=93"
+      ],
+      "result": {
+        "ok": true,
+        "keywords": [
+          "词1",
+          "词2",
+          "词3",
+          "词4",
+          "词5",
+          "词6",
+          "词7",
+          "词8"
+        ],
+        "queries": [
+          "词1",
+          "词2",
+          "词3",
+          "词4",
+          "词5",
+          "词6",
+          "词7"
+        ],
+        "routesPlanned": 7,
+        "effectiveProductId": 93,
+        "results": [
+          {
+            "type": "knowledge",
+            "id": "K_词1",
+            "title": "词1 文档",
+            "url": "https://vip.kingdee.com/knowledge/K_词1",
+            "snippet": "词1 正文。",
+            "products": [],
+            "comments": 1,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ]
+          },
+          {
+            "type": "knowledge",
+            "id": "K_词2",
+            "title": "词2 文档",
+            "url": "https://vip.kingdee.com/knowledge/K_词2",
+            "snippet": "词2 正文。",
+            "products": [],
+            "comments": 2,
+            "hitRoutes": 1,
+            "routes": [
+              2
+            ]
+          },
+          {
+            "type": "knowledge",
+            "id": "K_词3",
+            "title": "词3 文档",
+            "url": "https://vip.kingdee.com/knowledge/K_词3",
+            "snippet": "词3 正文。",
+            "products": [],
+            "comments": 3,
+            "hitRoutes": 1,
+            "routes": [
+              3
+            ]
+          },
+          {
+            "type": "knowledge",
+            "id": "K_词4",
+            "title": "词4 文档",
+            "url": "https://vip.kingdee.com/knowledge/K_词4",
+            "snippet": "词4 正文。",
+            "products": [],
+            "comments": 4,
+            "hitRoutes": 1,
+            "routes": [
+              4
+            ]
+          },
+          {
+            "type": "knowledge",
+            "id": "K_词5",
+            "title": "词5 文档",
+            "url": "https://vip.kingdee.com/knowledge/K_词5",
+            "snippet": "词5 正文。",
+            "products": [],
+            "comments": 5,
+            "hitRoutes": 1,
+            "routes": [
+              5
+            ]
+          },
+          {
+            "type": "knowledge",
+            "id": "K_词6",
+            "title": "词6 文档",
+            "url": "https://vip.kingdee.com/knowledge/K_词6",
+            "snippet": "词6 正文。",
+            "products": [],
+            "comments": 6,
+            "hitRoutes": 1,
+            "routes": [
+              6
+            ]
+          },
+          {
+            "type": "knowledge",
+            "id": "K_词7",
+            "title": "词7 文档",
+            "url": "https://vip.kingdee.com/knowledge/K_词7",
+            "snippet": "词7 正文。",
+            "products": [],
+            "comments": 7,
+            "hitRoutes": 1,
+            "routes": [
+              7
+            ]
+          }
+        ],
+        "otherSkipped": 0,
+        "routeErrors": [],
+        "keywordsDropped": 1,
+        "scanNote": "多路清单:7/7 路完成,每路 pageSize=10,归并后 7 条(帖子级);收词超上限:收到 8 个词,只发前 7 个(丢 1 条,见 keywordsDropped)",
+        "contractCfgLoaded": true,
+        "stats": {
+          "upstreamCalls": 7,
+          "elapsedMs": "<elapsedMs>"
+        }
+      },
+      "name": "search/over_limit_eight",
+      "mode": "core"
+    },
+    {
+      "requestCount": 2,
+      "requests": [
+        "https://vip.kingdee.com/api/search?text=%E8%B5%84%E4%BA%A7&page=1&pageSize=10&global=false&sortsType=1&productIds%5B0%5D=93",
+        "https://vip.kingdee.com/api/search?text=BOM&page=1&pageSize=10&global=false&sortsType=1&productIds%5B0%5D=93"
+      ],
+      "result": {
+        "ok": true,
+        "keywords": [
+          "资产",
+          "资产",
+          "BOM"
+        ],
+        "queries": [
+          "资产",
+          "BOM"
+        ],
+        "routesPlanned": 3,
+        "effectiveProductId": 93,
+        "results": [
+          {
+            "type": "knowledge",
+            "id": "K1001",
+            "title": "资产卡片使用说明",
+            "url": "https://vip.kingdee.com/knowledge/K1001",
+            "snippet": "资产卡片用于登记资产卡片信息。",
+            "products": [
+              "星空旗舰版",
+              "资产管理",
+              "业务对象"
+            ],
+            "comments": 2,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ]
+          },
+          {
+            "type": "question",
+            "id": "91001",
+            "title": "应收单怎么对账",
+            "url": "https://vip.kingdee.com/questions/91001/answers/7002",
+            "snippet": "应收单对账的问题描述。",
+            "products": [
+              "应收管理"
+            ],
+            "comments": 2,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ],
+            "adopted": true,
+            "answersCount": 3,
+            "questionBody": "应收单怎么对账？"
+          },
+          {
+            "type": "article",
+            "id": "A2001",
+            "title": "资产卡片配置指南",
+            "url": "https://vip.kingdee.com/article/A2001",
+            "snippet": "资产卡片配置步骤。",
+            "products": [
+              "资产管理"
+            ],
+            "comments": 0,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ],
+            "supports": 5
+          },
+          {
+            "type": "knowledge",
+            "id": "K1002",
+            "title": "BOM版本文档",
+            "url": "https://vip.kingdee.com/knowledge/K1002",
+            "snippet": "BOM 版本正文。",
+            "products": [
+              "星空旗舰版"
+            ],
+            "comments": 0,
+            "hitRoutes": 1,
+            "routes": [
+              2
+            ]
+          },
+          {
+            "type": "knowledge",
+            "id": "K1003",
+            "title": "BOM结构文档",
+            "url": "https://vip.kingdee.com/knowledge/K1003",
+            "snippet": "BOM 结构正文。",
+            "products": [],
+            "comments": null,
+            "hitRoutes": 1,
+            "routes": [
+              2
+            ]
+          },
+          {
+            "type": "article",
+            "id": "A2002",
+            "title": "BOM配置文章",
+            "url": "https://vip.kingdee.com/article/A2002",
+            "snippet": "BOM 配置文章正文。",
+            "products": [
+              "星空旗舰版"
+            ],
+            "comments": 1,
+            "hitRoutes": 1,
+            "routes": [
+              2
+            ],
+            "supports": 2
+          },
+          {
+            "type": "question",
+            "id": "91002",
+            "title": "供应链计划怎么算",
+            "url": "https://vip.kingdee.com/questions/91002/answers/8001",
+            "snippet": "供应链计划问题描述。",
+            "products": [
+              "供应链计划"
+            ],
+            "comments": 4,
+            "hitRoutes": 1,
+            "routes": [
+              2
+            ],
+            "adopted": true,
+            "answersCount": 1,
+            "questionBody": "供应链计划怎么算？"
+          }
+        ],
+        "otherSkipped": 2,
+        "routeErrors": [],
+        "keywordsDropped": 0,
+        "scanNote": "多路清单:2/3 路完成,每路 pageSize=10,归并后 7 条(帖子级);隐藏 2 条罕见类型(课程/路径/专题等,见 otherSkipped;需显式打开才返回)",
+        "contractCfgLoaded": true,
+        "stats": {
+          "upstreamCalls": 2,
+          "elapsedMs": "<elapsedMs>"
+        }
+      },
+      "name": "search/duplicate_keywords",
+      "mode": "core"
+    },
+    {
+      "requestCount": 2,
+      "requests": [
+        "https://vip.kingdee.com/api/search?text=%E8%B5%84%E4%BA%A7&page=1&pageSize=10&global=false&sortsType=1&productIds%5B0%5D=93",
+        "https://vip.kingdee.com/api/search?text=BOM&page=1&pageSize=10&global=false&sortsType=1&productIds%5B0%5D=93"
+      ],
+      "result": {
+        "ok": true,
+        "keywords": [
+          "资产",
+          "   ",
+          "BOM"
+        ],
+        "queries": [
+          "资产",
+          "BOM"
+        ],
+        "routesPlanned": 2,
+        "effectiveProductId": 93,
+        "results": [
+          {
+            "type": "knowledge",
+            "id": "K1001",
+            "title": "资产卡片使用说明",
+            "url": "https://vip.kingdee.com/knowledge/K1001",
+            "snippet": "资产卡片用于登记资产卡片信息。",
+            "products": [
+              "星空旗舰版",
+              "资产管理",
+              "业务对象"
+            ],
+            "comments": 2,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ]
+          },
+          {
+            "type": "question",
+            "id": "91001",
+            "title": "应收单怎么对账",
+            "url": "https://vip.kingdee.com/questions/91001/answers/7002",
+            "snippet": "应收单对账的问题描述。",
+            "products": [
+              "应收管理"
+            ],
+            "comments": 2,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ],
+            "adopted": true,
+            "answersCount": 3,
+            "questionBody": "应收单怎么对账？"
+          },
+          {
+            "type": "article",
+            "id": "A2001",
+            "title": "资产卡片配置指南",
+            "url": "https://vip.kingdee.com/article/A2001",
+            "snippet": "资产卡片配置步骤。",
+            "products": [
+              "资产管理"
+            ],
+            "comments": 0,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ],
+            "supports": 5
+          },
+          {
+            "type": "knowledge",
+            "id": "K1002",
+            "title": "BOM版本文档",
+            "url": "https://vip.kingdee.com/knowledge/K1002",
+            "snippet": "BOM 版本正文。",
+            "products": [
+              "星空旗舰版"
+            ],
+            "comments": 0,
+            "hitRoutes": 1,
+            "routes": [
+              2
+            ]
+          },
+          {
+            "type": "knowledge",
+            "id": "K1003",
+            "title": "BOM结构文档",
+            "url": "https://vip.kingdee.com/knowledge/K1003",
+            "snippet": "BOM 结构正文。",
+            "products": [],
+            "comments": null,
+            "hitRoutes": 1,
+            "routes": [
+              2
+            ]
+          },
+          {
+            "type": "article",
+            "id": "A2002",
+            "title": "BOM配置文章",
+            "url": "https://vip.kingdee.com/article/A2002",
+            "snippet": "BOM 配置文章正文。",
+            "products": [
+              "星空旗舰版"
+            ],
+            "comments": 1,
+            "hitRoutes": 1,
+            "routes": [
+              2
+            ],
+            "supports": 2
+          },
+          {
+            "type": "question",
+            "id": "91002",
+            "title": "供应链计划怎么算",
+            "url": "https://vip.kingdee.com/questions/91002/answers/8001",
+            "snippet": "供应链计划问题描述。",
+            "products": [
+              "供应链计划"
+            ],
+            "comments": 4,
+            "hitRoutes": 1,
+            "routes": [
+              2
+            ],
+            "adopted": true,
+            "answersCount": 1,
+            "questionBody": "供应链计划怎么算？"
+          }
+        ],
+        "otherSkipped": 2,
+        "routeErrors": [],
+        "keywordsDropped": 0,
+        "scanNote": "多路清单:2/2 路完成,每路 pageSize=10,归并后 7 条(帖子级);丢弃空白词 1 条(调用方输入里的空串/纯空白,不产生检索路);隐藏 2 条罕见类型(课程/路径/专题等,见 otherSkipped;需显式打开才返回)",
+        "contractCfgLoaded": true,
+        "stats": {
+          "upstreamCalls": 2,
+          "elapsedMs": "<elapsedMs>"
+        }
+      },
+      "name": "search/blank_partial",
+      "mode": "core"
+    },
+    {
+      "requestCount": 1,
+      "requests": [
+        "https://vip.kingdee.com/api/search?text=%E8%B5%84%E4%BA%A7&page=1&pageSize=10&global=false&sortsType=1&productIds%5B0%5D=93"
+      ],
+      "result": {
+        "ok": true,
+        "keywords": [
+          "资产"
+        ],
+        "queries": [
+          "资产"
+        ],
+        "routesPlanned": 1,
+        "effectiveProductId": 93,
+        "results": [
+          {
+            "type": "knowledge",
+            "id": "K1001",
+            "title": "资产卡片使用说明",
+            "url": "https://vip.kingdee.com/knowledge/K1001",
+            "snippet": "资产卡片用于登记资产卡片信息。",
+            "products": [
+              "星空旗舰版",
+              "资产管理",
+              "业务对象"
+            ],
+            "comments": 2,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ]
+          },
+          {
+            "type": "question",
+            "id": "91001",
+            "title": "应收单怎么对账",
+            "url": "https://vip.kingdee.com/questions/91001/answers/7002",
+            "snippet": "应收单对账的问题描述。",
+            "products": [
+              "应收管理"
+            ],
+            "comments": 2,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ],
+            "adopted": true,
+            "answersCount": 3,
+            "questionBody": "应收单怎么对账？"
+          },
+          {
+            "type": "article",
+            "id": "A2001",
+            "title": "资产卡片配置指南",
+            "url": "https://vip.kingdee.com/article/A2001",
+            "snippet": "资产卡片配置步骤。",
+            "products": [
+              "资产管理"
+            ],
+            "comments": 0,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ],
+            "supports": 5
+          },
+          {
+            "type": "other",
+            "id": "6898",
+            "title": "资产卡片微课",
+            "url": null,
+            "snippet": "资产卡片微课内容。",
+            "products": [],
+            "comments": null,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ],
+            "upstreamType": "LearningCourse",
+            "resourceType": "video"
+          }
+        ],
+        "otherSkipped": 0,
+        "routeErrors": [],
+        "keywordsDropped": 0,
+        "scanNote": "多路清单:1/1 路完成,每路 pageSize=10,归并后 4 条(帖子级)",
+        "contractCfgLoaded": true,
+        "stats": {
+          "upstreamCalls": 1,
+          "elapsedMs": "<elapsedMs>"
+        }
+      },
+      "name": "search/other_included",
+      "mode": "core"
+    },
+    {
+      "requestCount": 1,
+      "requests": [
+        "https://vip.kingdee.com/api/search?text=BOM&page=1&pageSize=10&global=false&sortsType=1&productIds%5B0%5D=93"
+      ],
+      "result": {
+        "ok": true,
+        "keywords": [
+          "BOM"
+        ],
+        "queries": [
+          "BOM"
+        ],
+        "routesPlanned": 1,
+        "effectiveProductId": 93,
+        "results": [
+          {
+            "type": "knowledge",
+            "id": "K1002",
+            "title": "BOM版本文档",
+            "url": "https://vip.kingdee.com/knowledge/K1002",
+            "snippet": "BOM 版本正文。",
+            "products": [
+              "星空旗舰版"
+            ],
+            "comments": 0,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ]
+          },
+          {
+            "type": "knowledge",
+            "id": "K1003",
+            "title": "BOM结构文档",
+            "url": "https://vip.kingdee.com/knowledge/K1003",
+            "snippet": "BOM 结构正文。",
+            "products": [],
+            "comments": null,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ]
+          },
+          {
+            "type": "article",
+            "id": "A2002",
+            "title": "BOM配置文章",
+            "url": "https://vip.kingdee.com/article/A2002",
+            "snippet": "BOM 配置文章正文。",
+            "products": [
+              "星空旗舰版"
+            ],
+            "comments": 1,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ],
+            "supports": 2
+          },
+          {
+            "type": "question",
+            "id": "91002",
+            "title": "供应链计划怎么算",
+            "url": "https://vip.kingdee.com/questions/91002/answers/8001",
+            "snippet": "供应链计划问题描述。",
+            "products": [
+              "供应链计划"
+            ],
+            "comments": 4,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ],
+            "adopted": true,
+            "answersCount": 1,
+            "questionBody": "供应链计划怎么算？"
+          }
+        ],
+        "otherSkipped": 1,
+        "routeErrors": [],
+        "keywordsDropped": 0,
+        "scanNote": "多路清单:1/1 路完成,每路 pageSize=10,归并后 4 条(帖子级);隐藏 1 条罕见类型(课程/路径/专题等,见 otherSkipped;需显式打开才返回)",
+        "contractCfgLoaded": true,
+        "stats": {
+          "upstreamCalls": 1,
+          "elapsedMs": "<elapsedMs>"
+        }
+      },
+      "name": "search/entity_type_tolerance",
+      "mode": "core"
+    },
+    {
+      "requestCount": 2,
+      "requests": [
+        "https://vip.kingdee.com/api/search?text=%E4%B8%8A%E6%B8%B8%E6%95%85%E9%9A%9C&page=1&pageSize=10&global=false&sortsType=1&productIds%5B0%5D=93",
+        "https://vip.kingdee.com/api/search?text=%E8%B5%84%E4%BA%A7&page=1&pageSize=10&global=false&sortsType=1&productIds%5B0%5D=93"
+      ],
+      "result": {
+        "ok": true,
+        "keywords": [
+          "资产",
+          "上游故障"
+        ],
+        "queries": [
+          "资产",
+          "上游故障"
+        ],
+        "routesPlanned": 2,
+        "effectiveProductId": 93,
+        "results": [
+          {
+            "type": "knowledge",
+            "id": "K1001",
+            "title": "资产卡片使用说明",
+            "url": "https://vip.kingdee.com/knowledge/K1001",
+            "snippet": "资产卡片用于登记资产卡片信息。",
+            "products": [
+              "星空旗舰版",
+              "资产管理",
+              "业务对象"
+            ],
+            "comments": 2,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ]
+          },
+          {
+            "type": "question",
+            "id": "91001",
+            "title": "应收单怎么对账",
+            "url": "https://vip.kingdee.com/questions/91001/answers/7002",
+            "snippet": "应收单对账的问题描述。",
+            "products": [
+              "应收管理"
+            ],
+            "comments": 2,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ],
+            "adopted": true,
+            "answersCount": 3,
+            "questionBody": "应收单怎么对账？"
+          },
+          {
+            "type": "article",
+            "id": "A2001",
+            "title": "资产卡片配置指南",
+            "url": "https://vip.kingdee.com/article/A2001",
+            "snippet": "资产卡片配置步骤。",
+            "products": [
+              "资产管理"
+            ],
+            "comments": 0,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ],
+            "supports": 5
+          }
+        ],
+        "otherSkipped": 1,
+        "routeErrors": [
+          {
+            "route": 2,
+            "kind": "explicit",
+            "terms": "上游故障",
+            "error": "upstream_error",
+            "code": 409,
+            "message": "text too long"
+          }
+        ],
+        "keywordsDropped": 0,
+        "scanNote": "多路清单:1/2 路完成,每路 pageSize=10,归并后 3 条(帖子级);失败路 1 条(见 routeErrors);隐藏 1 条罕见类型(课程/路径/专题等,见 otherSkipped;需显式打开才返回)",
+        "contractCfgLoaded": true,
+        "stats": {
+          "upstreamCalls": 2,
+          "elapsedMs": "<elapsedMs>"
+        }
+      },
+      "name": "search/route_upstream_error",
+      "mode": "core"
+    },
+    {
+      "requestCount": 2,
+      "requests": [
+        "https://vip.kingdee.com/api/search?text=%E4%BC%A0%E8%BE%93%E6%95%85%E9%9A%9C&page=1&pageSize=10&global=false&sortsType=1&productIds%5B0%5D=93",
+        "https://vip.kingdee.com/api/search?text=%E8%B5%84%E4%BA%A7&page=1&pageSize=10&global=false&sortsType=1&productIds%5B0%5D=93"
+      ],
+      "result": {
+        "ok": true,
+        "keywords": [
+          "资产",
+          "传输故障"
+        ],
+        "queries": [
+          "资产",
+          "传输故障"
+        ],
+        "routesPlanned": 2,
+        "effectiveProductId": 93,
+        "results": [
+          {
+            "type": "knowledge",
+            "id": "K1001",
+            "title": "资产卡片使用说明",
+            "url": "https://vip.kingdee.com/knowledge/K1001",
+            "snippet": "资产卡片用于登记资产卡片信息。",
+            "products": [
+              "星空旗舰版",
+              "资产管理",
+              "业务对象"
+            ],
+            "comments": 2,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ]
+          },
+          {
+            "type": "question",
+            "id": "91001",
+            "title": "应收单怎么对账",
+            "url": "https://vip.kingdee.com/questions/91001/answers/7002",
+            "snippet": "应收单对账的问题描述。",
+            "products": [
+              "应收管理"
+            ],
+            "comments": 2,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ],
+            "adopted": true,
+            "answersCount": 3,
+            "questionBody": "应收单怎么对账？"
+          },
+          {
+            "type": "article",
+            "id": "A2001",
+            "title": "资产卡片配置指南",
+            "url": "https://vip.kingdee.com/article/A2001",
+            "snippet": "资产卡片配置步骤。",
+            "products": [
+              "资产管理"
+            ],
+            "comments": 0,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ],
+            "supports": 5
+          }
+        ],
+        "otherSkipped": 1,
+        "routeErrors": [
+          {
+            "route": 2,
+            "kind": "explicit",
+            "terms": "传输故障",
+            "error": "URLError",
+            "code": null,
+            "message": "<urlopen error <urlopen error timed out>>"
+          }
+        ],
+        "keywordsDropped": 0,
+        "scanNote": "多路清单:1/2 路完成,每路 pageSize=10,归并后 3 条(帖子级);失败路 1 条(见 routeErrors);隐藏 1 条罕见类型(课程/路径/专题等,见 otherSkipped;需显式打开才返回)",
+        "contractCfgLoaded": true,
+        "stats": {
+          "upstreamCalls": 2,
+          "elapsedMs": "<elapsedMs>"
+        }
+      },
+      "name": "search/route_url_error",
+      "mode": "core"
+    },
+    {
+      "requestCount": 2,
+      "requests": [
+        "https://vip.kingdee.com/api/search?text=%E6%8A%A5%E6%96%87%E6%95%85%E9%9A%9C&page=1&pageSize=10&global=false&sortsType=1&productIds%5B0%5D=93",
+        "https://vip.kingdee.com/api/search?text=%E8%B5%84%E4%BA%A7&page=1&pageSize=10&global=false&sortsType=1&productIds%5B0%5D=93"
+      ],
+      "result": {
+        "ok": true,
+        "keywords": [
+          "资产",
+          "报文故障"
+        ],
+        "queries": [
+          "资产",
+          "报文故障"
+        ],
+        "routesPlanned": 2,
+        "effectiveProductId": 93,
+        "results": [
+          {
+            "type": "knowledge",
+            "id": "K1001",
+            "title": "资产卡片使用说明",
+            "url": "https://vip.kingdee.com/knowledge/K1001",
+            "snippet": "资产卡片用于登记资产卡片信息。",
+            "products": [
+              "星空旗舰版",
+              "资产管理",
+              "业务对象"
+            ],
+            "comments": 2,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ]
+          },
+          {
+            "type": "question",
+            "id": "91001",
+            "title": "应收单怎么对账",
+            "url": "https://vip.kingdee.com/questions/91001/answers/7002",
+            "snippet": "应收单对账的问题描述。",
+            "products": [
+              "应收管理"
+            ],
+            "comments": 2,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ],
+            "adopted": true,
+            "answersCount": 3,
+            "questionBody": "应收单怎么对账？"
+          },
+          {
+            "type": "article",
+            "id": "A2001",
+            "title": "资产卡片配置指南",
+            "url": "https://vip.kingdee.com/article/A2001",
+            "snippet": "资产卡片配置步骤。",
+            "products": [
+              "资产管理"
+            ],
+            "comments": 0,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ],
+            "supports": 5
+          }
+        ],
+        "otherSkipped": 1,
+        "routeErrors": [
+          {
+            "route": 2,
+            "kind": "explicit",
+            "terms": "报文故障",
+            "error": "JSONDecodeError",
+            "code": null,
+            "message": "Expecting value: line 1 column 1 (char 0)"
+          }
+        ],
+        "keywordsDropped": 0,
+        "scanNote": "多路清单:1/2 路完成,每路 pageSize=10,归并后 3 条(帖子级);失败路 1 条(见 routeErrors);隐藏 1 条罕见类型(课程/路径/专题等,见 otherSkipped;需显式打开才返回)",
+        "contractCfgLoaded": true,
+        "stats": {
+          "upstreamCalls": 2,
+          "elapsedMs": "<elapsedMs>"
+        }
+      },
+      "name": "search/route_json_error",
+      "mode": "core"
+    },
+    {
+      "requestCount": 2,
+      "requests": [
+        "https://vip.kingdee.com/api/search?text=%E5%8D%8F%E8%AE%AE%E6%95%85%E9%9A%9C&page=1&pageSize=10&global=false&sortsType=1&productIds%5B0%5D=93",
+        "https://vip.kingdee.com/api/search?text=%E8%B5%84%E4%BA%A7&page=1&pageSize=10&global=false&sortsType=1&productIds%5B0%5D=93"
+      ],
+      "result": {
+        "ok": true,
+        "keywords": [
+          "资产",
+          "协议故障"
+        ],
+        "queries": [
+          "资产",
+          "协议故障"
+        ],
+        "routesPlanned": 2,
+        "effectiveProductId": 93,
+        "results": [
+          {
+            "type": "knowledge",
+            "id": "K1001",
+            "title": "资产卡片使用说明",
+            "url": "https://vip.kingdee.com/knowledge/K1001",
+            "snippet": "资产卡片用于登记资产卡片信息。",
+            "products": [
+              "星空旗舰版",
+              "资产管理",
+              "业务对象"
+            ],
+            "comments": 2,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ]
+          },
+          {
+            "type": "question",
+            "id": "91001",
+            "title": "应收单怎么对账",
+            "url": "https://vip.kingdee.com/questions/91001/answers/7002",
+            "snippet": "应收单对账的问题描述。",
+            "products": [
+              "应收管理"
+            ],
+            "comments": 2,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ],
+            "adopted": true,
+            "answersCount": 3,
+            "questionBody": "应收单怎么对账？"
+          },
+          {
+            "type": "article",
+            "id": "A2001",
+            "title": "资产卡片配置指南",
+            "url": "https://vip.kingdee.com/article/A2001",
+            "snippet": "资产卡片配置步骤。",
+            "products": [
+              "资产管理"
+            ],
+            "comments": 0,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ],
+            "supports": 5
+          }
+        ],
+        "otherSkipped": 1,
+        "routeErrors": [
+          {
+            "route": 2,
+            "kind": "explicit",
+            "terms": "协议故障",
+            "error": "IncompleteRead",
+            "code": null,
+            "message": "IncompleteRead(0 bytes read)"
+          }
+        ],
+        "keywordsDropped": 0,
+        "scanNote": "多路清单:1/2 路完成,每路 pageSize=10,归并后 3 条(帖子级);失败路 1 条(见 routeErrors);隐藏 1 条罕见类型(课程/路径/专题等,见 otherSkipped;需显式打开才返回)",
+        "contractCfgLoaded": true,
+        "stats": {
+          "upstreamCalls": 2,
+          "elapsedMs": "<elapsedMs>"
+        }
+      },
+      "name": "search/route_http_exception",
+      "mode": "core"
+    },
+    {
+      "requestCount": 0,
+      "requests": [],
+      "result": {
+        "error": {
+          "exception": "InternalError",
+          "message": "keywords required: 传拆好的检索词(每词一路)(内核不再自行拆词,ADR-0016)",
+          "code": null
+        }
+      },
+      "name": "search/empty_keywords",
+      "mode": "core"
+    },
+    {
+      "requestCount": 0,
+      "requests": [],
+      "result": {
+        "error": {
+          "exception": "InternalError",
+          "message": "keywords 应为**词列表**,收到单个字符串: '资产'。内核不再收整句(位置参数 text 已删,ADR-0016)——请先按 WORD-SPLITTING.md 的拆词规范把问题拆成关键词,再以列表传入:search(keywords=[\"词1\", \"词2\"])",
+          "code": null
+        }
+      },
+      "name": "search/keywords_as_string",
+      "mode": "core"
+    },
+    {
+      "requestCount": 0,
+      "requests": [],
+      "result": {
+        "error": {
+          "exception": "InternalError",
+          "message": "keywords 应为词列表,收到 dict: ['a']。若你确实想按映射传,请显式取键:search(keywords=list(你的映射))",
+          "code": null
+        }
+      },
+      "name": "search/keywords_as_dict",
+      "mode": "core"
+    },
+    {
+      "requestCount": 0,
+      "requests": [],
+      "result": {
+        "error": {
+          "exception": "InternalError",
+          "message": "keywords 里没有有效检索词(全是空串/空白): ['', '  '](内核不做拆词,空输入会产出 0 路空清单——宁可报错也不静默)",
+          "code": null
+        }
+      },
+      "name": "search/all_blank_keywords",
+      "mode": "core"
+    },
+    {
+      "requestCount": 0,
+      "requests": [],
+      "result": {
+        "error": {
+          "exception": "QueryTooLong",
+          "message": "query too long: 101 > 100 upstream chars",
+          "code": null
+        }
+      },
+      "name": "search/query_too_long",
+      "mode": "core"
+    },
+    {
+      "requestCount": 1,
+      "requests": [
+        "https://vip.kingdee.com/knowledgeapi/knowledge/K1001"
+      ],
+      "result": {
+        "ok": true,
+        "id": "K1001",
+        "type": "knowledge",
+        "title": "资产卡片使用说明",
+        "contentText": "资产卡片用于登记资产卡片信息。\n第二段正文。",
+        "url": "https://vip.kingdee.com/knowledge/K1001",
+        "products": [
+          "星空旗舰版",
+          "资产管理",
+          "业务对象"
+        ],
+        "updatedAt": "2026-09-01",
+        "stats": {
+          "upstreamCalls": 1,
+          "elapsedMs": "<elapsedMs>"
+        }
+      },
+      "name": "read/knowledge",
+      "mode": "core"
+    },
+    {
+      "requestCount": 5,
+      "requests": [
+        "https://vip.kingdee.com/api/answers/7002",
+        "https://vip.kingdee.com/api/answers/7003",
+        "https://vip.kingdee.com/api/answers/7004",
+        "https://vip.kingdee.com/api/questions/91001",
+        "https://vip.kingdee.com/api/questions/91001/answers?page=1&pageSize=20"
+      ],
+      "result": {
+        "ok": true,
+        "id": "91001",
+        "type": "question",
+        "title": "应收单怎么对账",
+        "contentText": "应收单怎么对账？",
+        "url": "https://vip.kingdee.com/questions/91001/answers/7002",
+        "isSolved": "true",
+        "answersCount": 3,
+        "views": 1234,
+        "rewardCoins": 5,
+        "products": [
+          "应收管理",
+          "客户"
+        ],
+        "createdAt": "2026-08-01",
+        "updatedAt": "2026-09-02",
+        "bestAnswer": {
+          "id": "7002",
+          "contentText": "采纳答案正文。",
+          "adopted": true,
+          "usefuls": 9,
+          "comments": 3,
+          "creator": "张三",
+          "createdAt": "2026-08-02",
+          "discussion": null
+        },
+        "answersTaken": 3,
+        "answersTotal": 3,
+        "answers": [
+          {
+            "id": "7002",
+            "contentText": "回答二完整正文,比摘要长。",
+            "adopted": true,
+            "usefuls": 9,
+            "comments": 3,
+            "creator": "张三",
+            "createdAt": "2026-08-02",
+            "discussion": [
+              {
+                "creator": "张三",
+                "contentText": "追问链正文。"
+              }
+            ]
+          },
+          {
+            "id": "7003",
+            "contentText": "回答三完整正文,比摘要长。",
+            "adopted": false,
+            "usefuls": 1,
+            "comments": 0,
+            "creator": "李四",
+            "createdAt": "2026-08-03",
+            "discussion": null
+          },
+          {
+            "id": "7004",
+            "contentText": "回答四完整正文,比摘要长。",
+            "adopted": false,
+            "usefuls": 0,
+            "comments": 1,
+            "creator": "王五",
+            "createdAt": null,
+            "discussion": null
+          }
+        ],
+        "stats": {
+          "upstreamCalls": 5,
+          "elapsedMs": "<elapsedMs>"
+        }
+      },
+      "name": "read/question_simple",
+      "mode": "core"
+    },
+    {
+      "requestCount": 6,
+      "requests": [
+        "https://vip.kingdee.com/api/answers/7601",
+        "https://vip.kingdee.com/api/answers/7602",
+        "https://vip.kingdee.com/api/answers/7603",
+        "https://vip.kingdee.com/api/questions/91005",
+        "https://vip.kingdee.com/api/questions/91005/answers?page=1&pageSize=20",
+        "https://vip.kingdee.com/api/questions/91005/answers?page=2&pageSize=20"
+      ],
+      "result": {
+        "ok": true,
+        "id": "91005",
+        "type": "question",
+        "title": "多页问答怎么翻",
+        "contentText": "多页问答的提问。",
+        "url": "https://vip.kingdee.com/questions/91005/answers/7601",
+        "isSolved": "false",
+        "answersCount": 3,
+        "views": 7,
+        "rewardCoins": 2,
+        "products": [
+          "报表",
+          "多页"
+        ],
+        "createdAt": "2026-04-01",
+        "updatedAt": "2026-05-01",
+        "answersTaken": 3,
+        "answersTotal": 3,
+        "answers": [
+          {
+            "id": "7601",
+            "contentText": "多页回答一的完整正文,比摘要长。",
+            "adopted": true,
+            "usefuls": 4,
+            "comments": 1,
+            "creator": "甲",
+            "createdAt": null,
+            "discussion": [
+              {
+                "creator": "甲",
+                "contentText": "追问链正文。"
+              }
+            ]
+          },
+          {
+            "id": "7602",
+            "contentText": "多页回答二的完整正文,比摘要长。",
+            "adopted": false,
+            "usefuls": 1,
+            "comments": 0,
+            "creator": "乙",
+            "createdAt": null,
+            "discussion": null
+          },
+          {
+            "id": "7603",
+            "contentText": "多页回答三的完整正文,比摘要长。",
+            "adopted": false,
+            "usefuls": 0,
+            "comments": 0,
+            "creator": "丙",
+            "createdAt": null,
+            "discussion": null
+          }
+        ],
+        "stats": {
+          "upstreamCalls": 6,
+          "elapsedMs": "<elapsedMs>"
+        }
+      },
+      "name": "read/question_multi_page",
+      "mode": "core"
+    },
+    {
+      "requestCount": 7,
+      "requests": [
+        "https://vip.kingdee.com/api/answers/7301",
+        "https://vip.kingdee.com/api/answers/7302",
+        "https://vip.kingdee.com/api/answers/7303",
+        "https://vip.kingdee.com/api/answers/7304",
+        "https://vip.kingdee.com/api/answers/7305",
+        "https://vip.kingdee.com/api/questions/91003",
+        "https://vip.kingdee.com/api/questions/91003/answers?page=1&pageSize=20"
+      ],
+      "result": {
+        "ok": true,
+        "id": "91003",
+        "type": "question",
+        "title": "报表导出怎么配",
+        "contentText": "报表导出问题。",
+        "url": "https://vip.kingdee.com/questions/91003/answers/7301",
+        "isSolved": "false",
+        "answersCount": 6,
+        "views": 30,
+        "rewardCoins": 0,
+        "products": [
+          "报表",
+          "导出"
+        ],
+        "createdAt": "2026-07-01",
+        "updatedAt": "2026-08-01",
+        "truncated": "answer_limit",
+        "answersTaken": 6,
+        "answersTotal": 6,
+        "answers": [
+          {
+            "id": "7301",
+            "contentText": "7301 的完整正文。",
+            "adopted": true,
+            "usefuls": 2,
+            "comments": 0,
+            "creator": "甲",
+            "createdAt": null,
+            "discussion": null
+          },
+          {
+            "id": "7302",
+            "contentText": "7302 的完整正文。",
+            "adopted": false,
+            "usefuls": 1,
+            "comments": 0,
+            "creator": "乙",
+            "createdAt": null,
+            "discussion": null
+          },
+          {
+            "id": "7303",
+            "contentText": "7303 的完整正文。",
+            "adopted": false,
+            "usefuls": 0,
+            "comments": 0,
+            "creator": "丙",
+            "createdAt": null,
+            "discussion": null
+          },
+          {
+            "id": "7304",
+            "contentText": "7304 的完整正文。",
+            "adopted": false,
+            "usefuls": 0,
+            "comments": 0,
+            "creator": "丁",
+            "createdAt": null,
+            "discussion": null
+          },
+          {
+            "id": "7305",
+            "contentText": "7305 的完整正文。",
+            "adopted": false,
+            "usefuls": 0,
+            "comments": 0,
+            "creator": "戊",
+            "createdAt": null,
+            "discussion": null
+          },
+          {
+            "id": "7306",
+            "contentText": "报表导出回答六。",
+            "adopted": false,
+            "usefuls": 0,
+            "comments": 0,
+            "creator": "己",
+            "createdAt": null,
+            "discussion": null
+          }
+        ],
+        "stats": {
+          "upstreamCalls": 7,
+          "elapsedMs": "<elapsedMs>"
+        }
+      },
+      "name": "read/question_answer_limit",
+      "mode": "core"
+    },
+    {
+      "requestCount": 5,
+      "requests": [
+        "https://vip.kingdee.com/api/answers/7501",
+        "https://vip.kingdee.com/api/answers/7502",
+        "https://vip.kingdee.com/api/answers/7503",
+        "https://vip.kingdee.com/api/questions/91004",
+        "https://vip.kingdee.com/api/questions/91004/answers?page=1&pageSize=20"
+      ],
+      "result": {
+        "ok": true,
+        "id": "91004",
+        "type": "question",
+        "title": "凭证怎么生成",
+        "contentText": "凭证生成问题。",
+        "url": "https://vip.kingdee.com/questions/91004/answers/7501",
+        "isSolved": "true",
+        "answersCount": 3,
+        "views": 5,
+        "rewardCoins": 1,
+        "products": [
+          "总账",
+          "凭证"
+        ],
+        "createdAt": "2026-06-01",
+        "updatedAt": "2026-07-01",
+        "truncated": "upstream_error",
+        "answersTaken": 3,
+        "answersTotal": 3,
+        "answers": [
+          {
+            "id": "7501",
+            "contentText": "凭证回答一。",
+            "adopted": false,
+            "usefuls": 0,
+            "comments": 0,
+            "creator": "甲",
+            "createdAt": null,
+            "discussion": null
+          },
+          {
+            "id": "7502",
+            "contentText": "7502 的完整正文。",
+            "adopted": false,
+            "usefuls": 0,
+            "comments": 0,
+            "creator": "乙",
+            "createdAt": null,
+            "discussion": null
+          },
+          {
+            "id": "7503",
+            "contentText": "7503 的完整正文。",
+            "adopted": false,
+            "usefuls": 0,
+            "comments": 0,
+            "creator": "丙",
+            "createdAt": null,
+            "discussion": null
+          }
+        ],
+        "stats": {
+          "upstreamCalls": 5,
+          "elapsedMs": "<elapsedMs>"
+        }
+      },
+      "name": "read/question_upstream_error",
+      "mode": "core"
+    },
+    {
+      "requestCount": 1,
+      "requests": [
+        "https://vip.kingdee.com/api/articles/A2001"
+      ],
+      "result": {
+        "ok": true,
+        "id": "A2001",
+        "type": "article",
+        "title": "资产卡片配置指南",
+        "contentText": "文章正文。",
+        "url": "https://vip.kingdee.com/article/A2001",
+        "products": [
+          "资产管理",
+          "多余项"
+        ],
+        "supports": 5,
+        "views": 42,
+        "updatedAt": "2026-08-20",
+        "stats": {
+          "upstreamCalls": 1,
+          "elapsedMs": "<elapsedMs>"
+        }
+      },
+      "name": "read/article",
+      "mode": "core"
+    },
+    {
+      "requestCount": 0,
+      "requests": [],
+      "result": {
+        "error": {
+          "exception": "InternalError",
+          "message": "kind='other' 是合法类型,但内核**没有它的全文端点**:这一档收容的是上游罕见实体(课程/学习路径/专题/直播等),各类型的详情端点形状不一(部分无端点、个别 url 在第三方域),故未接入 read。清单条目本身已给出 title 与 upstreamType,可据此自行判断。",
+          "code": "unsupported_kind"
+        }
+      },
+      "name": "read/unsupported_kind",
+      "mode": "core"
+    },
+    {
+      "requestCount": 0,
+      "requests": [],
+      "result": {
+        "error": {
+          "exception": "InternalError",
+          "message": "bad kind: nope(knowledge|question|article|other)",
+          "code": null
+        }
+      },
+      "name": "read/bad_kind",
+      "mode": "core"
+    },
+    {
+      "requestCount": 0,
+      "requests": [],
+      "result": {
+        "error": {
+          "exception": "InternalError",
+          "message": "id required: 传 search 结果条目的 id",
+          "code": null
+        }
+      },
+      "name": "read/missing_id",
+      "mode": "core"
+    },
+    {
+      "requestCount": 2,
+      "requests": [
+        "https://vip.kingdee.com/api/search?text=%E8%B5%84%E4%BA%A7&page=1&pageSize=10&global=false&sortsType=1&productIds%5B0%5D=93",
+        "https://vip.kingdee.com/api/search?text=BOM&page=1&pageSize=10&global=false&sortsType=1&productIds%5B0%5D=93"
+      ],
+      "exitCode": 0,
+      "stdout": {
+        "ok": true,
+        "keywords": [
+          "资产",
+          "BOM"
+        ],
+        "queries": [
+          "资产",
+          "BOM"
+        ],
+        "routesPlanned": 2,
+        "effectiveProductId": 93,
+        "results": [
+          {
+            "type": "knowledge",
+            "id": "K1001",
+            "title": "资产卡片使用说明",
+            "url": "https://vip.kingdee.com/knowledge/K1001",
+            "snippet": "资产卡片用于登记资产卡片信息。",
+            "products": [
+              "星空旗舰版",
+              "资产管理",
+              "业务对象"
+            ],
+            "comments": 2,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ]
+          },
+          {
+            "type": "question",
+            "id": "91001",
+            "title": "应收单怎么对账",
+            "url": "https://vip.kingdee.com/questions/91001/answers/7002",
+            "snippet": "应收单对账的问题描述。",
+            "products": [
+              "应收管理"
+            ],
+            "comments": 2,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ],
+            "adopted": true,
+            "answersCount": 3,
+            "questionBody": "应收单怎么对账？"
+          },
+          {
+            "type": "article",
+            "id": "A2001",
+            "title": "资产卡片配置指南",
+            "url": "https://vip.kingdee.com/article/A2001",
+            "snippet": "资产卡片配置步骤。",
+            "products": [
+              "资产管理"
+            ],
+            "comments": 0,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ],
+            "supports": 5
+          },
+          {
+            "type": "knowledge",
+            "id": "K1002",
+            "title": "BOM版本文档",
+            "url": "https://vip.kingdee.com/knowledge/K1002",
+            "snippet": "BOM 版本正文。",
+            "products": [
+              "星空旗舰版"
+            ],
+            "comments": 0,
+            "hitRoutes": 1,
+            "routes": [
+              2
+            ]
+          },
+          {
+            "type": "knowledge",
+            "id": "K1003",
+            "title": "BOM结构文档",
+            "url": "https://vip.kingdee.com/knowledge/K1003",
+            "snippet": "BOM 结构正文。",
+            "products": [],
+            "comments": null,
+            "hitRoutes": 1,
+            "routes": [
+              2
+            ]
+          },
+          {
+            "type": "article",
+            "id": "A2002",
+            "title": "BOM配置文章",
+            "url": "https://vip.kingdee.com/article/A2002",
+            "snippet": "BOM 配置文章正文。",
+            "products": [
+              "星空旗舰版"
+            ],
+            "comments": 1,
+            "hitRoutes": 1,
+            "routes": [
+              2
+            ],
+            "supports": 2
+          },
+          {
+            "type": "question",
+            "id": "91002",
+            "title": "供应链计划怎么算",
+            "url": "https://vip.kingdee.com/questions/91002/answers/8001",
+            "snippet": "供应链计划问题描述。",
+            "products": [
+              "供应链计划"
+            ],
+            "comments": 4,
+            "hitRoutes": 1,
+            "routes": [
+              2
+            ],
+            "adopted": true,
+            "answersCount": 1,
+            "questionBody": "供应链计划怎么算？"
+          }
+        ],
+        "otherSkipped": 2,
+        "routeErrors": [],
+        "keywordsDropped": 0,
+        "scanNote": "多路清单:2/2 路完成,每路 pageSize=10,归并后 7 条(帖子级);隐藏 2 条罕见类型(课程/路径/专题等,见 otherSkipped;需显式打开才返回)",
+        "contractCfgLoaded": true,
+        "stats": {
+          "upstreamCalls": 2,
+          "elapsedMs": "<elapsedMs>"
+        }
+      },
+      "stderr": "[kd] SEARCH: kw×2 | routes 2 | otherSkipped 2 | returned 7 | upstream 2\n[kd] 多路检索 2 路: 资产 | BOM\n[kd] 隐藏 2 条罕见类型(课程/路径/专题等;需 --include-other 才返回)\n",
+      "name": "cli/search_basic",
+      "mode": "cli"
+    },
+    {
+      "requestCount": 1,
+      "requests": [
+        "https://vip.kingdee.com/api/search?text=%E8%B5%84%E4%BA%A7&page=1&pageSize=10&global=false&sortsType=1&productIds%5B0%5D=93"
+      ],
+      "exitCode": 0,
+      "stdout": {
+        "ok": true,
+        "keywords": [
+          "资产"
+        ],
+        "queries": [
+          "资产"
+        ],
+        "routesPlanned": 1,
+        "effectiveProductId": 93,
+        "results": [
+          {
+            "type": "knowledge",
+            "id": "K1001",
+            "title": "资产卡片使用说明",
+            "url": "https://vip.kingdee.com/knowledge/K1001",
+            "snippet": "资产卡片用于登记资产卡片信息。",
+            "products": [
+              "星空旗舰版",
+              "资产管理",
+              "业务对象"
+            ],
+            "comments": 2,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ]
+          },
+          {
+            "type": "question",
+            "id": "91001",
+            "title": "应收单怎么对账",
+            "url": "https://vip.kingdee.com/questions/91001/answers/7002",
+            "snippet": "应收单对账的问题描述。",
+            "products": [
+              "应收管理"
+            ],
+            "comments": 2,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ],
+            "adopted": true,
+            "answersCount": 3,
+            "questionBody": "应收单怎么对账？"
+          },
+          {
+            "type": "article",
+            "id": "A2001",
+            "title": "资产卡片配置指南",
+            "url": "https://vip.kingdee.com/article/A2001",
+            "snippet": "资产卡片配置步骤。",
+            "products": [
+              "资产管理"
+            ],
+            "comments": 0,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ],
+            "supports": 5
+          },
+          {
+            "type": "other",
+            "id": "6898",
+            "title": "资产卡片微课",
+            "url": null,
+            "snippet": "资产卡片微课内容。",
+            "products": [],
+            "comments": null,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ],
+            "upstreamType": "LearningCourse",
+            "resourceType": "video"
+          }
+        ],
+        "otherSkipped": 0,
+        "routeErrors": [],
+        "keywordsDropped": 0,
+        "scanNote": "多路清单:1/1 路完成,每路 pageSize=10,归并后 4 条(帖子级)",
+        "contractCfgLoaded": true,
+        "stats": {
+          "upstreamCalls": 1,
+          "elapsedMs": "<elapsedMs>"
+        }
+      },
+      "stderr": "[kd] SEARCH: kw×1 | routes 1 | otherSkipped 0 | returned 4 | upstream 1\n[kd] 多路检索 1 路: 资产\n",
+      "name": "cli/search_include_other",
+      "mode": "cli"
+    },
+    {
+      "requestCount": 7,
+      "requests": [
+        "https://vip.kingdee.com/api/search?text=%E8%AF%8D1&page=1&pageSize=10&global=false&sortsType=1&productIds%5B0%5D=93",
+        "https://vip.kingdee.com/api/search?text=%E8%AF%8D2&page=1&pageSize=10&global=false&sortsType=1&productIds%5B0%5D=93",
+        "https://vip.kingdee.com/api/search?text=%E8%AF%8D3&page=1&pageSize=10&global=false&sortsType=1&productIds%5B0%5D=93",
+        "https://vip.kingdee.com/api/search?text=%E8%AF%8D4&page=1&pageSize=10&global=false&sortsType=1&productIds%5B0%5D=93",
+        "https://vip.kingdee.com/api/search?text=%E8%AF%8D5&page=1&pageSize=10&global=false&sortsType=1&productIds%5B0%5D=93",
+        "https://vip.kingdee.com/api/search?text=%E8%AF%8D6&page=1&pageSize=10&global=false&sortsType=1&productIds%5B0%5D=93",
+        "https://vip.kingdee.com/api/search?text=%E8%AF%8D7&page=1&pageSize=10&global=false&sortsType=1&productIds%5B0%5D=93"
+      ],
+      "exitCode": 0,
+      "stdout": {
+        "ok": true,
+        "keywords": [
+          "词1",
+          "词2",
+          "词3",
+          "词4",
+          "词5",
+          "词6",
+          "词7",
+          "词8"
+        ],
+        "queries": [
+          "词1",
+          "词2",
+          "词3",
+          "词4",
+          "词5",
+          "词6",
+          "词7"
+        ],
+        "routesPlanned": 7,
+        "effectiveProductId": 93,
+        "results": [
+          {
+            "type": "knowledge",
+            "id": "K_词1",
+            "title": "词1 文档",
+            "url": "https://vip.kingdee.com/knowledge/K_词1",
+            "snippet": "词1 正文。",
+            "products": [],
+            "comments": 1,
+            "hitRoutes": 1,
+            "routes": [
+              1
+            ]
+          },
+          {
+            "type": "knowledge",
+            "id": "K_词2",
+            "title": "词2 文档",
+            "url": "https://vip.kingdee.com/knowledge/K_词2",
+            "snippet": "词2 正文。",
+            "products": [],
+            "comments": 2,
+            "hitRoutes": 1,
+            "routes": [
+              2
+            ]
+          },
+          {
+            "type": "knowledge",
+            "id": "K_词3",
+            "title": "词3 文档",
+            "url": "https://vip.kingdee.com/knowledge/K_词3",
+            "snippet": "词3 正文。",
+            "products": [],
+            "comments": 3,
+            "hitRoutes": 1,
+            "routes": [
+              3
+            ]
+          },
+          {
+            "type": "knowledge",
+            "id": "K_词4",
+            "title": "词4 文档",
+            "url": "https://vip.kingdee.com/knowledge/K_词4",
+            "snippet": "词4 正文。",
+            "products": [],
+            "comments": 4,
+            "hitRoutes": 1,
+            "routes": [
+              4
+            ]
+          },
+          {
+            "type": "knowledge",
+            "id": "K_词5",
+            "title": "词5 文档",
+            "url": "https://vip.kingdee.com/knowledge/K_词5",
+            "snippet": "词5 正文。",
+            "products": [],
+            "comments": 5,
+            "hitRoutes": 1,
+            "routes": [
+              5
+            ]
+          },
+          {
+            "type": "knowledge",
+            "id": "K_词6",
+            "title": "词6 文档",
+            "url": "https://vip.kingdee.com/knowledge/K_词6",
+            "snippet": "词6 正文。",
+            "products": [],
+            "comments": 6,
+            "hitRoutes": 1,
+            "routes": [
+              6
+            ]
+          },
+          {
+            "type": "knowledge",
+            "id": "K_词7",
+            "title": "词7 文档",
+            "url": "https://vip.kingdee.com/knowledge/K_词7",
+            "snippet": "词7 正文。",
+            "products": [],
+            "comments": 7,
+            "hitRoutes": 1,
+            "routes": [
+              7
+            ]
+          }
+        ],
+        "otherSkipped": 0,
+        "routeErrors": [],
+        "keywordsDropped": 1,
+        "scanNote": "多路清单:7/7 路完成,每路 pageSize=10,归并后 7 条(帖子级);收词超上限:收到 8 个词,只发前 7 个(丢 1 条,见 keywordsDropped)",
+        "contractCfgLoaded": true,
+        "stats": {
+          "upstreamCalls": 7,
+          "elapsedMs": "<elapsedMs>"
+        }
+      },
+      "stderr": "[kd] SEARCH: kw×8 | routes 7 | otherSkipped 0 | returned 7 | upstream 7\n[kd] 多路检索 7 路: 词1 | 词2 | 词3 | 词4 | 词5 | 词6 | 词7\n[kd] 收词超上限:丢弃 1 个词(只发前 7 个)\n",
+      "name": "cli/search_over_limit",
+      "mode": "cli"
+    },
+    {
+      "requestCount": 1,
+      "requests": [
+        "https://vip.kingdee.com/knowledgeapi/knowledge/K1001"
+      ],
+      "exitCode": 0,
+      "stdout": {
+        "ok": true,
+        "id": "K1001",
+        "type": "knowledge",
+        "title": "资产卡片使用说明",
+        "contentText": "资产卡片用于登记资产卡片信息。\n第二段正文。",
+        "url": "https://vip.kingdee.com/knowledge/K1001",
+        "products": [
+          "星空旗舰版",
+          "资产管理",
+          "业务对象"
+        ],
+        "updatedAt": "2026-09-01",
+        "stats": {
+          "upstreamCalls": 1,
+          "elapsedMs": "<elapsedMs>"
+        }
+      },
+      "stderr": "[kd] READ[knowledge]: K1001 | len 22\n",
+      "name": "cli/read_knowledge",
+      "mode": "cli"
+    },
+    {
+      "requestCount": 5,
+      "requests": [
+        "https://vip.kingdee.com/api/answers/7002",
+        "https://vip.kingdee.com/api/answers/7003",
+        "https://vip.kingdee.com/api/answers/7004",
+        "https://vip.kingdee.com/api/questions/91001",
+        "https://vip.kingdee.com/api/questions/91001/answers?page=1&pageSize=20"
+      ],
+      "exitCode": 0,
+      "stdout": {
+        "ok": true,
+        "id": "91001",
+        "type": "question",
+        "title": "应收单怎么对账",
+        "contentText": "应收单怎么对账？",
+        "url": "https://vip.kingdee.com/questions/91001/answers/7002",
+        "isSolved": "true",
+        "answersCount": 3,
+        "views": 1234,
+        "rewardCoins": 5,
+        "products": [
+          "应收管理",
+          "客户"
+        ],
+        "createdAt": "2026-08-01",
+        "updatedAt": "2026-09-02",
+        "bestAnswer": {
+          "id": "7002",
+          "contentText": "采纳答案正文。",
+          "adopted": true,
+          "usefuls": 9,
+          "comments": 3,
+          "creator": "张三",
+          "createdAt": "2026-08-02",
+          "discussion": null
+        },
+        "answersTaken": 3,
+        "answersTotal": 3,
+        "answers": [
+          {
+            "id": "7002",
+            "contentText": "回答二完整正文,比摘要长。",
+            "adopted": true,
+            "usefuls": 9,
+            "comments": 3,
+            "creator": "张三",
+            "createdAt": "2026-08-02",
+            "discussion": [
+              {
+                "creator": "张三",
+                "contentText": "追问链正文。"
+              }
+            ]
+          },
+          {
+            "id": "7003",
+            "contentText": "回答三完整正文,比摘要长。",
+            "adopted": false,
+            "usefuls": 1,
+            "comments": 0,
+            "creator": "李四",
+            "createdAt": "2026-08-03",
+            "discussion": null
+          },
+          {
+            "id": "7004",
+            "contentText": "回答四完整正文,比摘要长。",
+            "adopted": false,
+            "usefuls": 0,
+            "comments": 1,
+            "creator": "王五",
+            "createdAt": null,
+            "discussion": null
+          }
+        ],
+        "stats": {
+          "upstreamCalls": 5,
+          "elapsedMs": "<elapsedMs>"
+        }
+      },
+      "stderr": "[kd] READ[question]: 91001 | len 8\n",
+      "name": "cli/read_question",
+      "mode": "cli"
+    },
+    {
+      "requestCount": 0,
+      "requests": [],
+      "exitCode": 1,
+      "stdout": {
+        "error": {
+          "code": "unsupported_kind",
+          "message": "kind='other' 是合法类型,但内核**没有它的全文端点**:这一档收容的是上游罕见实体(课程/学习路径/专题/直播等),各类型的详情端点形状不一(部分无端点、个别 url 在第三方域),故未接入 read。清单条目本身已给出 title 与 upstreamType,可据此自行判断。",
+          "hint": "这是**已知的能力边界**,不是参数写错:该档收容的上游罕见实体没有统一可用的详情端点。清单条目已给出 title 与 upstreamType,可据此判断要不要另找途径。",
+          "example": "kd search --kw \"课程\" --include-other"
+        }
+      },
+      "stderr": "",
+      "name": "cli/read_unsupported_kind",
+      "mode": "cli"
+    },
+    {
+      "requestCount": 0,
+      "requests": [],
+      "exitCode": 2,
+      "stdout": "",
+      "stderr": "usage: kd read [-h] [--kind {knowledge,question,article,other}] id\nkd read: error: argument --kind: invalid choice: 'nope' (choose from 'knowledge', 'question', 'article', 'other')\n",
+      "name": "cli/read_bad_kind",
+      "mode": "cli"
+    },
+    {
+      "requestCount": 0,
+      "requests": [],
+      "exitCode": 1,
+      "stdout": {
+        "error": {
+          "code": "query_too_long",
+          "message": "query too long: 101 > 100 upstream chars",
+          "hint": "上游 text 硬上限 100 原始字符(含标点/空格):超限上游返回 errorCode:409 空壳。请精简后重试,或用 clamped 里的压回值重发。",
+          "example": "kd search --kw \"信用额度控制\"",
+          "limit": 100,
+          "length": 101,
+          "clamped": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        }
+      },
+      "stderr": "",
+      "name": "cli/query_too_long",
+      "mode": "cli"
+    }
+  ]
+}
