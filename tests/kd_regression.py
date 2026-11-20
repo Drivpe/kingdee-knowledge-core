@@ -7088,6 +7088,27 @@ def t_cli_read():
 
 
 # ---------------------------------------------------------------- 执行器
+@case("offline: 公开行为基线逐字段重放(票 01;39+ 场景,零联网)")
+def t_public_behavior_baseline():
+    """把 tests/baseline/ 的冻结基线当一条用例跑。
+
+    为什么要挂在这里:基线若没有任何人调用,就是一份没有消费者的声明 ——
+    本仓硬纪律「声明必须有消费者,否则'单一来源'是假的」。
+
+    两份套件的分工不重叠:本文件的其他用例守「声明即闸门」与内部判据,
+    基线守「改动后对外输出还长不长那个样子」。基线异常时本用例报红并带出漂移详情。
+    """
+    proc = subprocess.run([PY, os.path.join(REPO, "tests", "baseline", "replay_baseline.py")],
+                          capture_output=True, text=True, cwd=REPO)
+    detail = (proc.stdout or "") + (proc.stderr or "")
+    msg = ("公开行为基线出现漂移(exit=%d)。这是**想要的信号**:search/read 对外行为变了。"
+           "若是存心改契约,先改规格/ADR,再 --record 重录基线并审阅 diff。"
+           "漂移详情:" + chr(10) + "%s") % (proc.returncode, detail[-3000:])
+    ok(proc.returncode == 0, msg)
+    ok("比对结果" in detail,
+       "重放器没有输出比对结果,可能根本没跑起来:" + chr(10) + "%s" % (detail[-1500:],))
+
+
 def main(argv):
     import urllib.error
     online = "--online" in argv

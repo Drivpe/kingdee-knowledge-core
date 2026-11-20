@@ -2,7 +2,7 @@
   "meta": {
     "kernelVersion": "6.9",
     "contractVersion": "v6.9",
-    "scenarioCount": 39,
+    "scenarioCount": 41,
     "notes": [
       "期望值是录制时在固定 fake 上游上的真实输出,不是从 contract.json 派生的。",
       "stats.elapsedMs 为时序量,录制时归一为 <elapsedMs>;其余键与键序逐字冻结。",
@@ -2161,6 +2161,36 @@
         }
       },
       "name": "read/article",
+      "mode": "core"
+    },
+    {
+      "requestCount": 1,
+      "requests": [
+        "https://vip.kingdee.com/knowledgeapi/knowledge/K_BAD"
+      ],
+      "result": {
+        "error": {
+          "exception": "UpstreamError",
+          "message": "upstream 500: knowledge endpoint failed",
+          "code": 500
+        }
+      },
+      "name": "read/knowledge_upstream_error",
+      "mode": "core"
+    },
+    {
+      "requestCount": 1,
+      "requests": [
+        "https://vip.kingdee.com/api/articles/A_BAD"
+      ],
+      "result": {
+        "error": {
+          "exception": "UpstreamError",
+          "message": "upstream 500: article endpoint failed",
+          "code": 500
+        }
+      },
+      "name": "read/article_upstream_error",
       "mode": "core"
     },
     {

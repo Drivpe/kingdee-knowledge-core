@@ -7,156 +7,731 @@
  "search": {
   "资产": {
    "content": [
-    {"id": "K1001", "knowledgeId": "K1001", "entity-type": "Knowledge",
+    {
+     "id": "K1001",
+     "knowledgeId": "K1001",
+     "entity-type": "Knowledge",
      "title": "资产卡片使用说明",
-     "highlight": {"title": "资产<em>卡片</em>使用说明", "content": "<p>资产卡片用于登记资产卡片信息。</p>"},
-     "classifies": [{"name": "星空旗舰版"}, {"name": "资产管理"}, {"name": "业务对象"}, {"name": "多余项"}],
-     "comments": 2},
-    {"id": "7001", "questionId": "91001", "entity-type": "Answer", "title": "应收单怎么对账",
-     "highlight": {"question.title": "应收单<em>怎么对账</em>", "description": "<p>应收单对账的问题描述。</p>"},
-     "question": {"id": "91001", "description": "<p>应收单怎么对账？</p>", "answers": 3, "moduleName": "应收管理"},
-     "isAdopt": "false", "comments": 1},
-    {"id": "7002", "questionId": "91001", "entity-type": "Answer", "title": "应收单怎么对账",
-     "highlight": {"question.title": "应收单<em>怎么对账</em>", "description": "<p>应收单对账的回答二。</p>"},
-     "question": {"id": "91001", "description": "<p>应收单怎么对账？</p>", "answers": 3, "moduleName": "应收管理"},
-     "isAdopt": "true", "comments": 2},
-    {"id": "A2001", "entity-type": "Article", "title": "资产卡片配置指南",
-     "highlight": {"title": "资产卡片<em>配置</em>指南", "content": "<p>资产卡片配置步骤。</p>"},
-     "comments": 0, "supports": 5, "classifies": [{"name": "资产管理"}]},
-    {"id": "6898", "xId": "LearningCourse-6898", "entity-type": "LearningCourse",
-     "title": "资产卡片微课", "subtitle": "资产卡片微课目录",
-     "highlight": {"content": "<p>资产卡片微课内容。</p>"},
-     "comments": null, "resourceType": "video"}
+     "highlight": {
+      "title": "资产<em>卡片</em>使用说明",
+      "content": "<p>资产卡片用于登记资产卡片信息。</p>"
+     },
+     "classifies": [
+      {
+       "name": "星空旗舰版"
+      },
+      {
+       "name": "资产管理"
+      },
+      {
+       "name": "业务对象"
+      },
+      {
+       "name": "多余项"
+      }
+     ],
+     "comments": 2
+    },
+    {
+     "id": "7001",
+     "questionId": "91001",
+     "entity-type": "Answer",
+     "title": "应收单怎么对账",
+     "highlight": {
+      "question.title": "应收单<em>怎么对账</em>",
+      "description": "<p>应收单对账的问题描述。</p>"
+     },
+     "question": {
+      "id": "91001",
+      "description": "<p>应收单怎么对账？</p>",
+      "answers": 3,
+      "moduleName": "应收管理"
+     },
+     "isAdopt": "false",
+     "comments": 1
+    },
+    {
+     "id": "7002",
+     "questionId": "91001",
+     "entity-type": "Answer",
+     "title": "应收单怎么对账",
+     "highlight": {
+      "question.title": "应收单<em>怎么对账</em>",
+      "description": "<p>应收单对账的回答二。</p>"
+     },
+     "question": {
+      "id": "91001",
+      "description": "<p>应收单怎么对账？</p>",
+      "answers": 3,
+      "moduleName": "应收管理"
+     },
+     "isAdopt": "true",
+     "comments": 2
+    },
+    {
+     "id": "A2001",
+     "entity-type": "Article",
+     "title": "资产卡片配置指南",
+     "highlight": {
+      "title": "资产卡片<em>配置</em>指南",
+      "content": "<p>资产卡片配置步骤。</p>"
+     },
+     "comments": 0,
+     "supports": 5,
+     "classifies": [
+      {
+       "name": "资产管理"
+      }
+     ]
+    },
+    {
+     "id": "6898",
+     "xId": "LearningCourse-6898",
+     "entity-type": "LearningCourse",
+     "title": "资产卡片微课",
+     "subtitle": "资产卡片微课目录",
+     "highlight": {
+      "content": "<p>资产卡片微课内容。</p>"
+     },
+     "comments": null,
+     "resourceType": "video"
+    }
    ],
-   "totalElements": 5, "totalPages": 1
+   "totalElements": 5,
+   "totalPages": 1
   },
   "BOM": {
    "content": [
-    {"id": "K1002", "knowledgeId": "K1002", "entity-type": " Knowledge\n",
+    {
+     "id": "K1002",
+     "knowledgeId": "K1002",
+     "entity-type": " Knowledge\n",
      "title": "BOM 版本文档",
-     "highlight": {"title": "BOM<em>版本</em>文档", "content": "<p>BOM 版本正文。</p>"},
-     "classifies": [{"name": "星空旗舰版"}], "comments": 0},
-    {"id": "K1003", "knowledgeId": "K1003", "entity-type": "KNOWLEDGE",
+     "highlight": {
+      "title": "BOM<em>版本</em>文档",
+      "content": "<p>BOM 版本正文。</p>"
+     },
+     "classifies": [
+      {
+       "name": "星空旗舰版"
+      }
+     ],
+     "comments": 0
+    },
+    {
+     "id": "K1003",
+     "knowledgeId": "K1003",
+     "entity-type": "KNOWLEDGE",
      "title": "BOM 结构文档",
-     "highlight": {"title": "BOM<em>结构</em>文档", "content": "<p>BOM 结构正文。</p>"},
-     "comments": null},
-    {"id": "A2002", "entity-type": "Article\n", "title": "BOM 配置文章",
-     "highlight": {"title": "BOM<em>配置</em>文章", "content": "<p>BOM 配置文章正文。</p>"},
-     "comments": 1, "supports": 2, "classifies": [{"name": "星空旗舰版"}]},
-    {"id": "8001", "questionId": "91002", "entity-type": "answer ", "title": "供应链计划怎么算",
-     "highlight": {"question.title": "供应链计划<em>怎么算</em>", "description": "<p>供应链计划问题描述。</p>"},
-     "question": {"id": "91002", "description": "<p>供应链计划怎么算？</p>", "answers": 1, "moduleName": "供应链计划"},
-     "isAdopt": "true", "comments": 4},
-    {"id": "6899", "xId": "LearningPath-6899", "entity-type": "learningcourse",
+     "highlight": {
+      "title": "BOM<em>结构</em>文档",
+      "content": "<p>BOM 结构正文。</p>"
+     },
+     "comments": null
+    },
+    {
+     "id": "A2002",
+     "entity-type": "Article\n",
+     "title": "BOM 配置文章",
+     "highlight": {
+      "title": "BOM<em>配置</em>文章",
+      "content": "<p>BOM 配置文章正文。</p>"
+     },
+     "comments": 1,
+     "supports": 2,
+     "classifies": [
+      {
+       "name": "星空旗舰版"
+      }
+     ]
+    },
+    {
+     "id": "8001",
+     "questionId": "91002",
+     "entity-type": "answer ",
+     "title": "供应链计划怎么算",
+     "highlight": {
+      "question.title": "供应链计划<em>怎么算</em>",
+      "description": "<p>供应链计划问题描述。</p>"
+     },
+     "question": {
+      "id": "91002",
+      "description": "<p>供应链计划怎么算？</p>",
+      "answers": 1,
+      "moduleName": "供应链计划"
+     },
+     "isAdopt": "true",
+     "comments": 4
+    },
+    {
+     "id": "6899",
+     "xId": "LearningPath-6899",
+     "entity-type": "learningcourse",
      "title": "BOM 微课",
-     "highlight": {"content": "<p>BOM 微课内容。</p>"},
-     "comments": null, "resourceType": "document"}
+     "highlight": {
+      "content": "<p>BOM 微课内容。</p>"
+     },
+     "comments": null,
+     "resourceType": "document"
+    }
    ],
-   "totalElements": 5, "totalPages": 1
+   "totalElements": 5,
+   "totalPages": 1
   },
-  "上游故障": {"errorCode": 409, "message": "text too long"},
-  "传输故障": {"__raise__": "URLError", "message": "<urlopen error timed out>"},
-  "报文故障": {"__raw__": "<html>gateway error</html>"},
-  "协议故障": {"__raise__": "IncompleteRead", "message": "IncompleteRead"},
-  "词1": {"content": [{"id": "K_词1", "knowledgeId": "K_词1", "entity-type": "Knowledge",
-    "title": "词1 文档", "highlight": {"title": "词1 文档", "content": "<p>词1 正文。</p>"}, "comments": 1}],
-    "totalElements": 1, "totalPages": 1},
-  "词2": {"content": [{"id": "K_词2", "knowledgeId": "K_词2", "entity-type": "Knowledge",
-    "title": "词2 文档", "highlight": {"title": "词2 文档", "content": "<p>词2 正文。</p>"}, "comments": 2}],
-    "totalElements": 1, "totalPages": 1},
-  "词3": {"content": [{"id": "K_词3", "knowledgeId": "K_词3", "entity-type": "Knowledge",
-    "title": "词3 文档", "highlight": {"title": "词3 文档", "content": "<p>词3 正文。</p>"}, "comments": 3}],
-    "totalElements": 1, "totalPages": 1},
-  "词4": {"content": [{"id": "K_词4", "knowledgeId": "K_词4", "entity-type": "Knowledge",
-    "title": "词4 文档", "highlight": {"title": "词4 文档", "content": "<p>词4 正文。</p>"}, "comments": 4}],
-    "totalElements": 1, "totalPages": 1},
-  "词5": {"content": [{"id": "K_词5", "knowledgeId": "K_词5", "entity-type": "Knowledge",
-    "title": "词5 文档", "highlight": {"title": "词5 文档", "content": "<p>词5 正文。</p>"}, "comments": 5}],
-    "totalElements": 1, "totalPages": 1},
-  "词6": {"content": [{"id": "K_词6", "knowledgeId": "K_词6", "entity-type": "Knowledge",
-    "title": "词6 文档", "highlight": {"title": "词6 文档", "content": "<p>词6 正文。</p>"}, "comments": 6}],
-    "totalElements": 1, "totalPages": 1},
-  "词7": {"content": [{"id": "K_词7", "knowledgeId": "K_词7", "entity-type": "Knowledge",
-    "title": "词7 文档", "highlight": {"title": "词7 文档", "content": "<p>词7 正文。</p>"}, "comments": 7}],
-    "totalElements": 1, "totalPages": 1},
-  "词8": {"content": [{"id": "K_词8", "knowledgeId": "K_词8", "entity-type": "Knowledge",
-    "title": "词8 文档", "highlight": {"title": "词8 文档", "content": "<p>词8 正文。</p>"}, "comments": 8}],
-    "totalElements": 1, "totalPages": 1}
+  "上游故障": {
+   "errorCode": 409,
+   "message": "text too long"
+  },
+  "传输故障": {
+   "__raise__": "URLError",
+   "message": "<urlopen error timed out>"
+  },
+  "报文故障": {
+   "__raw__": "<html>gateway error</html>"
+  },
+  "协议故障": {
+   "__raise__": "IncompleteRead",
+   "message": "IncompleteRead"
+  },
+  "词1": {
+   "content": [
+    {
+     "id": "K_词1",
+     "knowledgeId": "K_词1",
+     "entity-type": "Knowledge",
+     "title": "词1 文档",
+     "highlight": {
+      "title": "词1 文档",
+      "content": "<p>词1 正文。</p>"
+     },
+     "comments": 1
+    }
+   ],
+   "totalElements": 1,
+   "totalPages": 1
+  },
+  "词2": {
+   "content": [
+    {
+     "id": "K_词2",
+     "knowledgeId": "K_词2",
+     "entity-type": "Knowledge",
+     "title": "词2 文档",
+     "highlight": {
+      "title": "词2 文档",
+      "content": "<p>词2 正文。</p>"
+     },
+     "comments": 2
+    }
+   ],
+   "totalElements": 1,
+   "totalPages": 1
+  },
+  "词3": {
+   "content": [
+    {
+     "id": "K_词3",
+     "knowledgeId": "K_词3",
+     "entity-type": "Knowledge",
+     "title": "词3 文档",
+     "highlight": {
+      "title": "词3 文档",
+      "content": "<p>词3 正文。</p>"
+     },
+     "comments": 3
+    }
+   ],
+   "totalElements": 1,
+   "totalPages": 1
+  },
+  "词4": {
+   "content": [
+    {
+     "id": "K_词4",
+     "knowledgeId": "K_词4",
+     "entity-type": "Knowledge",
+     "title": "词4 文档",
+     "highlight": {
+      "title": "词4 文档",
+      "content": "<p>词4 正文。</p>"
+     },
+     "comments": 4
+    }
+   ],
+   "totalElements": 1,
+   "totalPages": 1
+  },
+  "词5": {
+   "content": [
+    {
+     "id": "K_词5",
+     "knowledgeId": "K_词5",
+     "entity-type": "Knowledge",
+     "title": "词5 文档",
+     "highlight": {
+      "title": "词5 文档",
+      "content": "<p>词5 正文。</p>"
+     },
+     "comments": 5
+    }
+   ],
+   "totalElements": 1,
+   "totalPages": 1
+  },
+  "词6": {
+   "content": [
+    {
+     "id": "K_词6",
+     "knowledgeId": "K_词6",
+     "entity-type": "Knowledge",
+     "title": "词6 文档",
+     "highlight": {
+      "title": "词6 文档",
+      "content": "<p>词6 正文。</p>"
+     },
+     "comments": 6
+    }
+   ],
+   "totalElements": 1,
+   "totalPages": 1
+  },
+  "词7": {
+   "content": [
+    {
+     "id": "K_词7",
+     "knowledgeId": "K_词7",
+     "entity-type": "Knowledge",
+     "title": "词7 文档",
+     "highlight": {
+      "title": "词7 文档",
+      "content": "<p>词7 正文。</p>"
+     },
+     "comments": 7
+    }
+   ],
+   "totalElements": 1,
+   "totalPages": 1
+  },
+  "词8": {
+   "content": [
+    {
+     "id": "K_词8",
+     "knowledgeId": "K_词8",
+     "entity-type": "Knowledge",
+     "title": "词8 文档",
+     "highlight": {
+      "title": "词8 文档",
+      "content": "<p>词8 正文。</p>"
+     },
+     "comments": 8
+    }
+   ],
+   "totalElements": 1,
+   "totalPages": 1
+  }
  },
  "knowledge": {
-  "K1001": {"id": "K1001", "title": "资产卡片使用说明",
-    "content": "<div><p>资产卡片用于登记资产卡片信息。</p><p>第二段正文。</p></div>",
-    "products": [{"name": "星空旗舰版"}, {"name": "资产管理"}, {"name": "业务对象"}, {"name": "多余项"}],
-    "updatedAt": "2026-09-01"}
+  "K1001": {
+   "id": "K1001",
+   "title": "资产卡片使用说明",
+   "content": "<div><p>资产卡片用于登记资产卡片信息。</p><p>第二段正文。</p></div>",
+   "products": [
+    {
+     "name": "星空旗舰版"
+    },
+    {
+     "name": "资产管理"
+    },
+    {
+     "name": "业务对象"
+    },
+    {
+     "name": "多余项"
+    }
+   ],
+   "updatedAt": "2026-09-01"
+  },
+  "K_BAD": {
+   "errorCode": 500,
+   "message": "knowledge endpoint failed"
+  }
  },
  "questions": {
-  "91001": {"id": "91001", "title": "应收单怎么对账", "description": "<p>应收单怎么对账？</p>",
-    "isSolved": "true", "answers": 3, "views": 1234, "rewardCoins": 5,
-    "module": {"pathName": "应收管理/客户"}, "createdAt": "2026-08-01", "updatedAt": "2026-09-02",
-    "bestAnswer": [{"id": "7002", "description": "<p>采纳答案正文。</p>", "isAdopt": "true",
-      "creator": {"name": "张三"}, "usefuls": 9, "comments": 3, "createdAt": "2026-08-02"}]},
-  "91003": {"id": "91003", "title": "报表导出怎么配", "description": "<p>报表导出问题。</p>",
-    "isSolved": "false", "answers": 6, "views": 30, "rewardCoins": 0,
-    "module": {"pathName": "报表/导出"}, "createdAt": "2026-07-01", "updatedAt": "2026-08-01"},
-  "91004": {"id": "91004", "title": "凭证怎么生成", "description": "<p>凭证生成问题。</p>",
-    "isSolved": "true", "answers": 3, "views": 5, "rewardCoins": 1,
-    "module": {"pathName": "总账/凭证"}, "createdAt": "2026-06-01", "updatedAt": "2026-07-01"},
-  "91005": {"id": "91005", "title": "多页问答怎么翻", "description": "<p>多页问答的提问。</p>",
-    "isSolved": "false", "answers": 3, "views": 7, "rewardCoins": 2,
-    "module": {"pathName": "报表/多页"}, "createdAt": "2026-04-01", "updatedAt": "2026-05-01"}
+  "91001": {
+   "id": "91001",
+   "title": "应收单怎么对账",
+   "description": "<p>应收单怎么对账？</p>",
+   "isSolved": "true",
+   "answers": 3,
+   "views": 1234,
+   "rewardCoins": 5,
+   "module": {
+    "pathName": "应收管理/客户"
+   },
+   "createdAt": "2026-08-01",
+   "updatedAt": "2026-09-02",
+   "bestAnswer": [
+    {
+     "id": "7002",
+     "description": "<p>采纳答案正文。</p>",
+     "isAdopt": "true",
+     "creator": {
+      "name": "张三"
+     },
+     "usefuls": 9,
+     "comments": 3,
+     "createdAt": "2026-08-02"
+    }
+   ]
+  },
+  "91003": {
+   "id": "91003",
+   "title": "报表导出怎么配",
+   "description": "<p>报表导出问题。</p>",
+   "isSolved": "false",
+   "answers": 6,
+   "views": 30,
+   "rewardCoins": 0,
+   "module": {
+    "pathName": "报表/导出"
+   },
+   "createdAt": "2026-07-01",
+   "updatedAt": "2026-08-01"
+  },
+  "91004": {
+   "id": "91004",
+   "title": "凭证怎么生成",
+   "description": "<p>凭证生成问题。</p>",
+   "isSolved": "true",
+   "answers": 3,
+   "views": 5,
+   "rewardCoins": 1,
+   "module": {
+    "pathName": "总账/凭证"
+   },
+   "createdAt": "2026-06-01",
+   "updatedAt": "2026-07-01"
+  },
+  "91005": {
+   "id": "91005",
+   "title": "多页问答怎么翻",
+   "description": "<p>多页问答的提问。</p>",
+   "isSolved": "false",
+   "answers": 3,
+   "views": 7,
+   "rewardCoins": 2,
+   "module": {
+    "pathName": "报表/多页"
+   },
+   "createdAt": "2026-04-01",
+   "updatedAt": "2026-05-01"
+  }
  },
  "questionAnswers": {
-  "91001": {"1": {"content": [
-    {"id": "7002", "description": "<p>回答二摘要。</p>", "isAdopt": "true", "creator": {"name": "张三"},
-     "usefuls": 9, "comments": 3, "createdAt": "2026-08-02"},
-    {"id": "7003", "description": "<p>回答三摘要。</p>", "isAdopt": "false", "creator": {"name": "李四"},
-     "usefuls": 1, "comments": 0, "createdAt": "2026-08-03"},
-    {"id": "7004", "description": "<p>回答四摘要。</p>", "isAdopt": "false", "creator": {"name": "王五"},
-     "usefuls": 0, "comments": 1}
-   ], "totalPages": 1, "total": 3}},
-  "91003": {"1": {"content": [
-    {"id": "7301", "description": "<p>报表导出回答一。</p>", "isAdopt": "true", "creator": {"name": "甲"}, "usefuls": 2, "comments": 0},
-    {"id": "7302", "description": "<p>报表导出回答二。</p>", "isAdopt": "false", "creator": {"name": "乙"}, "usefuls": 1, "comments": 0},
-    {"id": "7303", "description": "<p>报表导出回答三。</p>", "isAdopt": "false", "creator": {"name": "丙"}, "usefuls": 0, "comments": 0},
-    {"id": "7304", "description": "<p>报表导出回答四。</p>", "isAdopt": "false", "creator": {"name": "丁"}, "usefuls": 0, "comments": 0},
-    {"id": "7305", "description": "<p>报表导出回答五。</p>", "isAdopt": "false", "creator": {"name": "戊"}, "usefuls": 0, "comments": 0},
-    {"id": "7306", "description": "<p>报表导出回答六。</p>", "isAdopt": "false", "creator": {"name": "己"}, "usefuls": 0, "comments": 0}
-   ], "totalPages": 1, "total": 6}},
-  "91004": {"1": {"content": [
-    {"id": "7501", "description": "<p>凭证回答一。</p>", "isAdopt": "false", "creator": {"name": "甲"}, "usefuls": 0, "comments": 0},
-    {"id": "7502", "description": "<p>凭证回答二。</p>", "isAdopt": "false", "creator": {"name": "乙"}, "usefuls": 0, "comments": 0},
-    {"id": "7503", "description": "<p>凭证回答三。</p>", "isAdopt": "false", "creator": {"name": "丙"}, "usefuls": 0, "comments": 0}
-   ], "totalPages": 1, "total": 3}},
-  "91005": {"1": {"content": [
-    {"id": "7601", "description": "<p>多页回答一。</p>", "isAdopt": "true", "creator": {"name": "甲"}, "usefuls": 4, "comments": 1},
-    {"id": "7602", "description": "<p>多页回答二。</p>", "isAdopt": "false", "creator": {"name": "乙"}, "usefuls": 1, "comments": 0}
-   ], "totalPages": 2, "total": 3},
-    "2": {"content": [
-    {"id": "7603", "description": "<p>多页回答三。</p>", "isAdopt": "false", "creator": {"name": "丙"}, "usefuls": 0, "comments": 0}
-   ], "totalPages": 2, "total": 3}}
+  "91001": {
+   "1": {
+    "content": [
+     {
+      "id": "7002",
+      "description": "<p>回答二摘要。</p>",
+      "isAdopt": "true",
+      "creator": {
+       "name": "张三"
+      },
+      "usefuls": 9,
+      "comments": 3,
+      "createdAt": "2026-08-02"
+     },
+     {
+      "id": "7003",
+      "description": "<p>回答三摘要。</p>",
+      "isAdopt": "false",
+      "creator": {
+       "name": "李四"
+      },
+      "usefuls": 1,
+      "comments": 0,
+      "createdAt": "2026-08-03"
+     },
+     {
+      "id": "7004",
+      "description": "<p>回答四摘要。</p>",
+      "isAdopt": "false",
+      "creator": {
+       "name": "王五"
+      },
+      "usefuls": 0,
+      "comments": 1
+     }
+    ],
+    "totalPages": 1,
+    "total": 3
+   }
+  },
+  "91003": {
+   "1": {
+    "content": [
+     {
+      "id": "7301",
+      "description": "<p>报表导出回答一。</p>",
+      "isAdopt": "true",
+      "creator": {
+       "name": "甲"
+      },
+      "usefuls": 2,
+      "comments": 0
+     },
+     {
+      "id": "7302",
+      "description": "<p>报表导出回答二。</p>",
+      "isAdopt": "false",
+      "creator": {
+       "name": "乙"
+      },
+      "usefuls": 1,
+      "comments": 0
+     },
+     {
+      "id": "7303",
+      "description": "<p>报表导出回答三。</p>",
+      "isAdopt": "false",
+      "creator": {
+       "name": "丙"
+      },
+      "usefuls": 0,
+      "comments": 0
+     },
+     {
+      "id": "7304",
+      "description": "<p>报表导出回答四。</p>",
+      "isAdopt": "false",
+      "creator": {
+       "name": "丁"
+      },
+      "usefuls": 0,
+      "comments": 0
+     },
+     {
+      "id": "7305",
+      "description": "<p>报表导出回答五。</p>",
+      "isAdopt": "false",
+      "creator": {
+       "name": "戊"
+      },
+      "usefuls": 0,
+      "comments": 0
+     },
+     {
+      "id": "7306",
+      "description": "<p>报表导出回答六。</p>",
+      "isAdopt": "false",
+      "creator": {
+       "name": "己"
+      },
+      "usefuls": 0,
+      "comments": 0
+     }
+    ],
+    "totalPages": 1,
+    "total": 6
+   }
+  },
+  "91004": {
+   "1": {
+    "content": [
+     {
+      "id": "7501",
+      "description": "<p>凭证回答一。</p>",
+      "isAdopt": "false",
+      "creator": {
+       "name": "甲"
+      },
+      "usefuls": 0,
+      "comments": 0
+     },
+     {
+      "id": "7502",
+      "description": "<p>凭证回答二。</p>",
+      "isAdopt": "false",
+      "creator": {
+       "name": "乙"
+      },
+      "usefuls": 0,
+      "comments": 0
+     },
+     {
+      "id": "7503",
+      "description": "<p>凭证回答三。</p>",
+      "isAdopt": "false",
+      "creator": {
+       "name": "丙"
+      },
+      "usefuls": 0,
+      "comments": 0
+     }
+    ],
+    "totalPages": 1,
+    "total": 3
+   }
+  },
+  "91005": {
+   "1": {
+    "content": [
+     {
+      "id": "7601",
+      "description": "<p>多页回答一。</p>",
+      "isAdopt": "true",
+      "creator": {
+       "name": "甲"
+      },
+      "usefuls": 4,
+      "comments": 1
+     },
+     {
+      "id": "7602",
+      "description": "<p>多页回答二。</p>",
+      "isAdopt": "false",
+      "creator": {
+       "name": "乙"
+      },
+      "usefuls": 1,
+      "comments": 0
+     }
+    ],
+    "totalPages": 2,
+    "total": 3
+   },
+   "2": {
+    "content": [
+     {
+      "id": "7603",
+      "description": "<p>多页回答三。</p>",
+      "isAdopt": "false",
+      "creator": {
+       "name": "丙"
+      },
+      "usefuls": 0,
+      "comments": 0
+     }
+    ],
+    "totalPages": 2,
+    "total": 3
+   }
+  }
  },
  "answers": {
-  "__default__": {"id": "<id>", "description": "<p><id> 的完整正文。</p>", "isAdopt": "false",
-    "creator": {"name": "默认作者"}, "usefuls": 0, "comments": 0},
-  "7002": {"id": "7002", "description": "<p>回答二完整正文,比摘要长。</p>", "isAdopt": "true",
-    "creator": {"name": "张三"}, "usefuls": 9, "comments": 3, "createdAt": "2026-08-02",
-    "appendQuestionsAndAnswers": [{"content": "<p>追问链正文。</p>", "creator": {"name": "张三"}}]},
-  "7003": {"id": "7003", "description": "<p>回答三完整正文,比摘要长。</p>", "isAdopt": "false",
-    "creator": {"name": "李四"}, "usefuls": 1, "comments": 0},
-  "7004": {"id": "7004", "description": "<p>回答四完整正文,比摘要长。</p>", "isAdopt": "false",
-    "creator": {"name": "王五"}, "usefuls": 0, "comments": 1},
-  "7501": {"errorCode": 404, "message": "not found"},
-  "7601": {"id": "7601", "description": "<p>多页回答一的完整正文,比摘要长。</p>", "isAdopt": "true",
-    "creator": {"name": "甲"}, "usefuls": 4, "comments": 1,
-    "appendQuestionsAndAnswers": [{"content": "<p>追问链正文。</p>", "creator": {"name": "甲"}}]},
-  "7602": {"id": "7602", "description": "<p>多页回答二的完整正文,比摘要长。</p>", "isAdopt": "false",
-    "creator": {"name": "乙"}, "usefuls": 1, "comments": 0},
-  "7603": {"id": "7603", "description": "<p>多页回答三的完整正文,比摘要长。</p>", "isAdopt": "false",
-    "creator": {"name": "丙"}, "usefuls": 0, "comments": 0}
+  "__default__": {
+   "id": "<id>",
+   "description": "<p><id> 的完整正文。</p>",
+   "isAdopt": "false",
+   "creator": {
+    "name": "默认作者"
+   },
+   "usefuls": 0,
+   "comments": 0
+  },
+  "7002": {
+   "id": "7002",
+   "description": "<p>回答二完整正文,比摘要长。</p>",
+   "isAdopt": "true",
+   "creator": {
+    "name": "张三"
+   },
+   "usefuls": 9,
+   "comments": 3,
+   "createdAt": "2026-08-02",
+   "appendQuestionsAndAnswers": [
+    {
+     "content": "<p>追问链正文。</p>",
+     "creator": {
+      "name": "张三"
+     }
+    }
+   ]
+  },
+  "7003": {
+   "id": "7003",
+   "description": "<p>回答三完整正文,比摘要长。</p>",
+   "isAdopt": "false",
+   "creator": {
+    "name": "李四"
+   },
+   "usefuls": 1,
+   "comments": 0
+  },
+  "7004": {
+   "id": "7004",
+   "description": "<p>回答四完整正文,比摘要长。</p>",
+   "isAdopt": "false",
+   "creator": {
+    "name": "王五"
+   },
+   "usefuls": 0,
+   "comments": 1
+  },
+  "7501": {
+   "errorCode": 404,
+   "message": "not found"
+  },
+  "7601": {
+   "id": "7601",
+   "description": "<p>多页回答一的完整正文,比摘要长。</p>",
+   "isAdopt": "true",
+   "creator": {
+    "name": "甲"
+   },
+   "usefuls": 4,
+   "comments": 1,
+   "appendQuestionsAndAnswers": [
+    {
+     "content": "<p>追问链正文。</p>",
+     "creator": {
+      "name": "甲"
+     }
+    }
+   ]
+  },
+  "7602": {
+   "id": "7602",
+   "description": "<p>多页回答二的完整正文,比摘要长。</p>",
+   "isAdopt": "false",
+   "creator": {
+    "name": "乙"
+   },
+   "usefuls": 1,
+   "comments": 0
+  },
+  "7603": {
+   "id": "7603",
+   "description": "<p>多页回答三的完整正文,比摘要长。</p>",
+   "isAdopt": "false",
+   "creator": {
+    "name": "丙"
+   },
+   "usefuls": 0,
+   "comments": 0
+  }
  },
  "articles": {
-  "A2001": {"id": "A2001", "title": "资产卡片配置指南", "content": "<p>文章正文。</p>",
-    "classifies": [{"name": "资产管理"}, {"name": "多余项"}], "supports": 5, "views": 42,
-    "updatedAt": "2026-08-20"}
+  "A2001": {
+   "id": "A2001",
+   "title": "资产卡片配置指南",
+   "content": "<p>文章正文。</p>",
+   "classifies": [
+    {
+     "name": "资产管理"
+    },
+    {
+     "name": "多余项"
+    }
+   ],
+   "supports": 5,
+   "views": 42,
+   "updatedAt": "2026-08-20"
+  },
+  "A_BAD": {
+   "errorCode": 500,
+   "message": "article endpoint failed"
+  }
  }
 }

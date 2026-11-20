@@ -260,6 +260,13 @@ SCENARIOS = [
      "kwargs": {"kind": "question", "oid": "91004"}},
     {"name": "read/article", "mode": "core", "op": "read",
      "kwargs": {"kind": "article", "oid": "A2001"}},
+    # ---- read:上游业务错误直接透穿到调用方(三类异常里的 UpstreamError)----
+    # ⚠️ 知识档与文章档**不抓**上游故障(只有问答档降级成 truncated),
+    # 故 UpstreamError 会原样透穿到调用方 —— 这是冻结面里的「三类异常」之一。
+    {"name": "read/knowledge_upstream_error", "mode": "core", "op": "read",
+     "kwargs": {"kind": "knowledge", "oid": "K_BAD"}},
+    {"name": "read/article_upstream_error", "mode": "core", "op": "read",
+     "kwargs": {"kind": "article", "oid": "A_BAD"}},
     {"name": "read/unsupported_kind", "mode": "core", "op": "read",
      "kwargs": {"kind": "other", "oid": "6898"}},
     {"name": "read/bad_kind", "mode": "core", "op": "read",
@@ -312,7 +319,11 @@ def run_core(op, kwargs):
                                 "code": getattr(e, "code", None)}}
     finally:
         _net._get_json = orig
-    return {"requestCount": len(calls), "requests": sorted(set(calls)), "result": result}
+    # ⚠️ **保留重复项**:每路恒 1 次请求是冻结面(规格决策 1:「路序、每路一次请求」不变)。
+    # 旧写法 sorted(set(calls)) 丢掉了重数:「某路发了两次、另一路一次没发」会得到与正常相同的记录,
+    # 那就是声称覆盖、实际不覆盖。排序保留(并发下完成顺序不得泄漏进结果),
+    # 但**不去重** —— 计数因此可比。
+    return {"requestCount": len(calls), "requests": sorted(calls), "result": result}
 
 
 def run_cli_main(argv):
