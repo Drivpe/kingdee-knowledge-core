@@ -13,8 +13,13 @@
 **装配层的职责(两件,都只有它做)**:
   1. 向 `kd.core` 提供 5 个公开名(2 函数 + 3 异常);
   2. 把全部内部件汇集到**本包命名空间**,成为内部件的**唯一名字解析点**——
-     `kd.core._impl()` 返回本包对象,测试/自检经它读内部件(守卫判据 7 逐项校验
-     `cli.cmd_health` 依赖的名字仍可解析)。
+     `kd.core._impl()` 返回本包对象,测试/自检经它读内部件。
+
+⚠️ **`kd health` 已删除**(2026-11-20,ADR-0011 增补记):它曾是本观测口的**主要生产
+消费者**。删它时同步做了两件事:① 清掉围绕它的守卫判据(命令没了,判据失去对象);
+② 删掉**只为它存在**的两个再导出(`_CONTRACT_PATH` / `UPSTREAM_TEXT_MAX`)。
+生产侧读点因此只剩 CLI 帮助文案的两处(`_PER_ROUTE_WANT` / `max_keywords()`),
+测试侧不变 —— 观测口的整体收口是票 07,不在本轮。
 
 子模块地图:
   _errors    三个对外异常类(类对象身份被 kd.core 复用)
@@ -44,8 +49,7 @@
 `_Budget` / `_BudgetExhausted` / `_cfg_budget_search_max` / `_route_cfg` /
 `_ROUTE_CFG_PATH`(预算与旧配置源)、`upstream_type_of`(随 `--type` 删除)、
 `_salient_chunks`(拆词器)、`_truncate_routes` / `_route_sorts_type` / `_MAX_SCAN_PAGES`
-(截断优先级与跨页扫描)。`cli.cmd_health` 的 `_cp.<name>` 引用已同步——
-**删机制时漏同步这里会让 health 崩**,守卫判据逐项校验。
+(截断优先级与跨页扫描)。删机制时同步收导出面:留着没人读的名字比删掉更不诚实。
 """
 
 # ---- 版本单一真源(包 __version__ 与 cli._VERSION 都从此取) ----
@@ -55,16 +59,14 @@ from ._config import VERSION  # noqa: F401
 from ._errors import InternalError, QueryTooLong, UpstreamError  # noqa: F401
 from ._public import read, search  # noqa: F401
 
-# ---- 内部件汇集:观测口(kd.core._impl())与测试/自检经此读取 ----
-# 这些名字构成内部件的"名字解析点"。cli.cmd_health 体内 `_cp.<name>` 引用的每一项
-# 必须在下面出现(守卫判据 7 会从 cli.py 源码提取清单并逐项校验可解析)。
+# ---- 内部件汇集:观测口(kd.core._impl())与测试经此读取 ----
+# 这些名字构成内部件的"名字解析点"。⚠️ kd health 删除后(ADR-0011 增补记)这里
+# 只剩测试消费者,故名字的生命周期由测试读点决定,不再有 CLI 生产读点钉着。
 from ._config import (  # noqa: F401
     ENTITY_KINDS,
     HDRS,
-    UPSTREAM_TEXT_MAX,
     VIP,
     _CONTRACT,
-    _CONTRACT_PATH,
     _FALLBACK_BY_TYPE_KEYS,
     # ⚠️ 兜底键集与 _CONTRACT 缓存对外导出是**刻意的**:回归用例要拿它们与声明做
     # **交叉核对**(两边同源就恒等成立,见 t_contract_fallback_in_sync 的 2026-09-28 更正),

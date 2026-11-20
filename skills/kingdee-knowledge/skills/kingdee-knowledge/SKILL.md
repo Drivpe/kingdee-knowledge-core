@@ -58,8 +58,9 @@ v6 主轴是**彻底在线**(ADR-0005):用时在线搜、搜到即读即查;ADR-
 export PATH="$HOME/.local/bin:$HOME/.kingdee-kit/bin:$PATH"; command -v kd && kd --version
 ```
 
-- `~/.local/bin` 是 pipx 落点,`~/.kingdee-kit/bin` 是一键脚本落点;
-- **agent 跑的是非交互 shell**,而 `install.sh` 把 PATH 写进 `~/.bashrc` / `~/.zshrc`
+- `~/.local/bin` 是 pipx / pip 的用户级落点(`~/.kingdee-kit/bin` 是已删除的一键脚本的旧落点,
+  留着只为兼容更早装过的机器);
+- **agent 跑的是非交互 shell**,而 pipx 只把 `~/.local/bin` 加进 `~/.bashrc` / `~/.zshrc`
   —— 这两个文件**只在交互 shell 生效**,非交互 shell 根本不读它们,所以新机器上"装好了但
   agent 看不见"是常态,不是环境损坏;
 - 上面这条命令自己把两个落点前置,**不依赖任何 rc 文件**,bash / zsh / sh 下均可用;
@@ -78,8 +79,8 @@ Windows:Git Bash 用上面同一条;cmd / PowerShell 自举后走 `kd.cmd`。
    当前工作目录 → `kingdee-knowledge-kit` 的常见检出位置;找不到再问用户。
    **在此之前不要编造任何金蝶知识内容。**
 
-想给这台机器装上第 1 级:见 README 的「安装」(pipx 一行,或 `install.sh` 一键)。
-能力清单:`kd --help`(三条子命令与示例)与 `kd health`(内核版本/公开面/收词上限/限速档)
+想给这台机器装上第 1 级:见 README 的「安装」(`pipx install kingdee-knowledge-kit` 一行)。
+能力清单:`kd --help`(两条子命令与示例)与 `kd --version`(内核版本)
 
 ⚠️ **永远不要把 stderr 丢弃(禁 `2>/dev/null`)**:stdout=数据,stderr=进度与诊断;命令失败时先看
 stderr/错误 JSON(带 hint),据此换调用方式,而不是静默改道 websearch。
@@ -284,10 +285,13 @@ site:help.open.kingdee.com <功能名词>
 
 ## 内核或上游异常时
 
-```bash
-kd health --help   # 先看用法
-kd health          # 正常时回 JSON 自检报告;失败时错误 JSON 的 hint 字段带修复指引
-```
+`kd --version` 能回显版本号即证明内核已被 import 成功;`kd --help` 能看到 `search` / `read`
+两条子命令即证明 CLI adapter 完好。两者都正常而检索失败,说明问题在**上游或调用参数**,
+不在安装 —— 直接看那条命令返回的错误 JSON 的 `hint` 字段(它给的是可执行的下一步)。
+
+> ⚠️ **没有 `kd health` 了**:该子命令已于 2026-11-20 删除(ADR-0011 增补记),调用它会
+> 得到 argparse 退出码 2。自检改用上面两条零上游请求的命令;不要照旧文档去敲 health。
+
 仍不行才回退 websearch/webfetch(`site:vip.kingdee.com`、help.open.kingdee.com),并告知用户。
 
 ## 禁止事项

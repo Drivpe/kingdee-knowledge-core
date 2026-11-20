@@ -23,8 +23,6 @@
 | `GLOSSARY.md` | `GLOSSARY.md` | `glossary-document`, `link-policy`, `link-policy-pointer`, `retired-mechanisms` |
 | `_upstream.py` | `src/kd/_impl/_upstream.py` | `link-policy` |
 | `_links.py` | `src/kd/_impl/_links.py` | `link-policy` |
-| `install.sh` | `install.sh` | `retired-mechanisms` |
-| `install.ps1` | `install.ps1` | `retired-mechanisms` |
 | `__init__.py` | `src/kd/__init__.py` | `retired-mechanisms` |
 | `core.py` | `src/kd/core.py` | `retired-mechanisms` |
 | `contract-rationale` | `docs/contract-rationale.md` | `contract-rationale-pointer` |
@@ -36,11 +34,11 @@
 `WORD-SPLITTING` 是 **2026-11-16(票 05)新增的载体**,下限随之从 8 抬到 9。它进的是
 `retired-mechanisms`:它是**用户（agent）真会照抄的 `kd search` 示例**（「固定套路」一节的
 两条命令），而 2026-09-28 那批拆除留下的已删参数与已删机制，一旦回写进示范命令，
-agent 照抄就是 argparse 退出码 2。这和安装脚本进本档的理由是同一个：**会被照抄的地方就得在册**。
+agent 照抄就是 argparse 退出码 2。这和当初安装脚本进本档的理由是同一个：**会被照抄的地方就得在册**。
 它不挂 `link-policy`：讲拆词的那个文件不承担「链接给不给」的表态职责。
 
-安装脚本与包文档进的是 `retired-mechanisms`:安装脚本末尾的"试一试"是用户装机后第一眼
-看到的用法,照抄必撞 argparse 退出码 2,所以它和主文档同等重要。
+包文档进的是 `retired-mechanisms`:`__init__.py` 与 `core.py` 的 docstring 里记着已删机制,
+它们的措辞与现行开关相反的话,读文档的人(和 agent)会被引向不存在的参数。
 
 `contract-rationale` 是 **2026-11-17(票 07)新增的载体**,下限随之从 9 抬到 10。它进的是
 `contract-rationale-pointer`:论证与实测从 `contract.json` 搬来之后,这份文件成了「为什么这么定」
@@ -48,6 +46,16 @@ agent 照抄就是 argparse 退出码 2。这和安装脚本进本档的理由�
 必须解析到它、且它不得落进技能目录(装机单元只拷技能目录)。反向不要求 —— 表里那份载体清单
 是本仓内部的维护地图,它指向 `docs/` 侧文件是常态(`link-policy` 那几条同理),拿一份仓库侧
 文档去要求仓库根文档回指,只会逼出一堆为了满足判据而存在的指针。
+
+⚠️ **2026-11-20(票 04)摘掉 `install.sh` / `install.ps1` 两条载体,`retired-mechanisms` 的下限 9 → 7**:
+两份定制安装脚本已删除(ADR-0011 增补记),发行只走 pyproject + pip/pipx。
+它们当初进册的理由是"安装脚本末尾的'试一试'是用户装机后第一眼看到的用法",脚本没了,
+这个观察面也就不存在。摘载体必须同批改小下限——否则删脚本时,钉子会以「登记了下限 9,
+实际只剩 7」红在一个已经不该存在的对象上。
+
+⚠️ 上面几段里的「从 8 抬到 9」「从 9 抬到 10」讲的是**载体表总行数**的历次变化,
+与本段这个**按事实登记的下限**(`retired-mechanisms` 一行)不是同一个数,别混着读。
+两者都只会被同一次改动一起改动:加/摘载体时,行数与相关事实的下限同批对齐。
 
 `README` 与 `GLOSSARY.md` 额外挂着 `link-policy-pointer`:它们不只是"口径别写反",还必须
 **明确指向**唯一真源。这两份历史上都自己另立过一套(README 写"引用做成可点击角标";
@@ -62,7 +70,7 @@ agent 照抄就是 argparse 退出码 2。这和安装脚本进本档的理由�
 | `link-policy-pointer` | 同上 | 2 | 载体里存在一行**活的**指针:同一行既有 `linkPolicy` 又有 `contract.json`,且不在版本史段落里 |
 | `contract-rationale-pointer` | `src/kd/contract.json` 的 `rationalePointer` | 1 | 该指针解析出的文件真在盘上、且不在技能目录里(由 `t_contract_rationale_split` 的 ① 段执行) |
 | `glossary-document` | `GLOSSARY.md` 自身(位置类事实,没有第二个来源) | 1 | 该载体登记在册、路径在盘上;术语表的路径**只在本表出现一次**,改名只改这里一行(由 `t_glossary_is_terms_only` / `t_numeric_facts_single_home` 执行) |
-| `retired-mechanisms` | `src/kd/cli.py` 的 argparse 定义(现行开关)+ `docs/adr/0016-检索词生成权移交调用层.md`(为什么删) | 9 | 载体不得出现"现在可以这样用"形态的已删参数与已删数据文件;说明变更的段落须带变更标记词 |
+| `retired-mechanisms` | `src/kd/cli.py` 的 argparse 定义(现行开关)+ `docs/adr/0016-检索词生成权移交调用层.md`(为什么删) | 7 | 载体不得出现"现在可以这样用"形态的已删参数与已删数据文件;说明变更的段落须带变更标记词 |
 
 五条事实对应**四条**钉子:`link-policy` 与 `link-policy-pointer` 都由
 `t_link_policy_docs_in_sync` 执行,`retired-mechanisms` 由 `t_docs_no_dead_mechanisms`

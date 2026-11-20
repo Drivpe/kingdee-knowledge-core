@@ -4,7 +4,15 @@
 契约(不变):stdout 只出 JSON,进度/日志走 stderr,错误是带 hint 的 JSON,
 退出码 0=成功 / 1=上游或内部错误 / 2=用法错误(argparse),永不交互、永无 ANSI 色码、强制 UTF-8。
 
-命令面三条:search / read / health。`ask` 已于 2026-09-18 删除(ADR-0013)。
+命令面两条:search / read。`ask` 已于 2026-09-18 删除(ADR-0013);
+`health` 已于 2026-11-20 删除(ADR-0011 增补记)——本 CLI 是**薄 adapter**,
+不再为自检而读私有配置。
+
+⚠️ **仍未收口的一处**(属票 07,不在本轮):`_IMPL = core._impl()` 仍在模块级取私有实现包,
+`_PER_ROUTE_WANT` 与 `max_keywords()` 只为**帮助文案**里的内核数值从它读。
+版本号(`VERSION`)与类型白名单(`ENTITY_KINDS`)是"单一真源"纪律要求的,保留;
+但那两个帮助文案读点不是。票 07 会把观测口整体收掉。
+
 子命令一律**真正删除**,不留 "unsupported" 占位——占位会把「已知失败」混进回归基线。
 
 ⚠️ **v6.6 参数面破坏性变更**(ADR-0016 决策 3,2026-09-28):
@@ -146,44 +154,6 @@ def cmd_read(a):
     _out(_guard(lambda: core.read(a.kind, a.id), op="read"))
 
 
-def cmd_health(_a):
-    """内核自检(无服务、无端口语义):只验证库可 import、配置可读、公开面完整。
-
-    与旧 /health 的差别:不再报"服务存活",也没有端点列表与 db/corpus/landing 计数
-    ——那些对象在去服务化后已不存在,报它们等于承诺不存在的能力。
-    """
-    # 内部件在私有实现包里(kd._impl),kd.core 顶层不暴露。
-    # 自检本就要读内部件,故经 core._impl() 观测口取——输出字段与取值逻辑不变。
-    _cp = core._impl()
-    missing = [n for n in core.__all__ if not hasattr(core, n)]
-    _out({
-        "ok": not missing,
-        "service": "kd.core v%s(库模式:无服务、无端口、无 HTTP)" % _VERSION,
-        "anonymous": True,
-        "http": False,
-        "noDiskWrite": True,   # 内核不落盘:无 landing 写穿、无 ~/.kd/ 日志
-        "python": sys.version.split()[0],
-        "executable": sys.executable,
-        "coreApi": list(core.__all__),
-        "missingApi": missing,
-        # ⚠️ v6.6:数据文件收敛为一个(contract.json)。原 routesCfg/routesCfgLoaded/
-        # budgetMax 三个字段随 query_routes.json 与预算机制一并删除——报它们等于
-        # 承诺不存在的能力(与"不留 unsupported 占位"同纪律)。
-        "contractCfg": _cp._CONTRACT_PATH,
-        "contractCfgLoaded": bool(_cp._contract()),
-        "maxKeywords": _cp.max_keywords(),
-        "rateProfile": _cp._rate_profile(),
-        "textMax": _cp.UPSTREAM_TEXT_MAX,
-        "commands": ["search", "read", "health"],
-        "note": "单入口检索(ADR-0013,2026-09-18):kd ask 已删除,search 是唯一检索入口"
-                "(多路关键词 + 只出标题清单 + 零排序评分),要全文走 kd read。"
-                "⚠️ v6.6(ADR-0016):内核**不再生成任何检索词** —— 检索词只来自调用方"
-                "(--kw),内核原样按序发送;拆词规范见技能目录的 WORD-SPLITTING.md。"
-                "去服务化(工单 #20):kd 进程内直连 kd.core,不依赖 127.0.0.1:4097,"
-                "不读 KSEARCH_URL。",
-    })
-
-
 def build_parser():
     p = argparse.ArgumentParser(
         prog="kd",
@@ -198,8 +168,7 @@ def build_parser():
         epilog='示例:\n'
                '  kd search --kw "应用为禁用状态[网关]" --kw "2510"   # 唯一检索入口:每词一路,按序\n'
                '  kd search --kw "信用额度控制" --kw "应收单 信用" --product 93\n'
-               '  kd read 402990431979506944                        # 从清单挑出 id 再读全文(kind 照抄 type)\n'
-               '  kd health                                         # 内核自检(库模式,无服务)',
+               '  kd read 402990431979506944                        # 从清单挑出 id 再读全文(kind 照抄 type)',
         formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--version", action="version", version="kd %s(library mode)" % _VERSION)
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -249,11 +218,6 @@ def build_parser():
                    help="实体类型,照抄 search 结果的 type 字段(默认 knowledge)")
     s.set_defaults(fn=cmd_read)
 
-    s = sub.add_parser("health", help="内核自检(库模式:无服务、无端口、无 HTTP)",
-                       epilog="本命令自检内核本身,不再探测服务——去服务化后没有服务可探。",
-                       formatter_class=argparse.RawDescriptionHelpFormatter)
-    s.set_defaults(fn=cmd_health)
-
     return p
 
 
@@ -265,9 +229,7 @@ def _harden_console():
     **保护不到它们** —— `--help` 在 `_out` 之前就 `SystemExit` 了。
     实测(zh-CN Windows 默认控制台 = cp936/GBK):`kd --help` 抛
     `UnicodeEncodeError: 'gbk' codec can't encode character '\\u26a0'`、**退出码 1**
-    (文案里的 `⚠️`)。连带后果是 `install.ps1` 的验证闸门 —— 它跑的就是含
-    `t_cli_help`(断言 `--help` 退出码 0)的离线回归 —— 在中文 Windows 上**必然判红**。
-    任意平台可复现(故回归钉子是离线、跨平台的):
+    (文案里的 `⚠️`)。任意平台可复现(故回归钉子是离线、跨平台的):
         PYTHONIOENCODING=gbk python3 src/kd_run.py --help
 
     做法是**只改 `errors`,不改 `encoding`**:帮助文案里的中文在 cp936 上仍可读,

@@ -25,8 +25,10 @@
     取代它的是 `t_product_id_passthrough`:product_id 恒等于调用方传入值。
   * **清单分页删除**(决策 D10):`--page`/`--size` 与 `page`/`page_size` 形参一并移除,
     分页相关用例删除。
-  * **接管守卫三条判据**(决策 D2/D3):版本号单一真源 / `health` 内部件依赖可解析 /
-    kind 集合三源一致 —— 原由 `scripts/check_core_surface.py` 承担,该脚本整体删除。
+  * **接管守卫判据**(决策 D2/D3):版本号单一真源 / kind 集合三源一致 ——
+    原由 `scripts/check_core_surface.py` 承担,该脚本整体删除。
+    ⚠️ 2026-11-20(票 04):原第三条「`health` 内部件依赖可解析」随 `kd health` 删除
+    (ADR-0011 增补记)——它守的命令已不存在,留着只会钉住一个不该存在的生产 seam。
 
 运行:
   python3 tests/kd_regression.py            # 离线组(默认;不联网,无网络也全绿)
@@ -255,6 +257,17 @@ def cli(*args, **kw):
     except Exception:
         data = None
     return p.returncode, data, p.stderr
+
+
+def out_text(*args, **kw):
+    """进程级调用 kd,返回**原始 stdout 文本**(不经 json 解析)。
+
+    只给需要检查"stdout 里有没有非 JSON 内容"的用例用 —— 用 `cli()` 的话,
+    非法结论会被 `json.loads` 抛出的异常吞成 `d is None`,看不出到底混进了什么。
+    """
+    p = subprocess.run([PY, RUN, *args], cwd=REPO, capture_output=True, text=True,
+                       encoding="utf-8", errors="replace", timeout=kw.get("timeout", 120))
+    return p.stdout
 
 
 def code_only(path):
@@ -580,37 +593,6 @@ def t_version_single_source():
        "contract.json version=%r 与 VERSION=%r 不同源" % (cfgv, want))
 
 
-@case("offline: health 内部件依赖可解析(观测口不失效)")
-def t_health_impl_deps_resolvable():
-    """`cli.cmd_health` 经观测口读取的每个内部件,必须仍在实现包里可解析。
-
-    抓的是"内部件被删/改名 → health 静默崩、而其它断言照样绿"这一类漂移。
-    依赖清单**从 cmd_health 源码里提取**(不手写第二份真相,避免清单自身腐烂);
-    三种失败任一即红:
-      a. 读不到 cli.py 或定位不到 cmd_health(函数被改名/删除);
-      b. 函数体内没有任何 `_cp.<name>` 引用(取数被抽走);
-      c. 清单非空但有条目在实现体里已失联(health 会崩)。
-
-    ⚠️ 已知局限(明确接受,原文照迁):只认 `_cp.<identifier>` 字面量,
-    经局部变量转手或 `getattr` 拼接的间接引用抓不到。这类漏只表现为"少一条钉子"
-    (漏报),不会把健康的 health 判成坏。
-    """
-    import re
-    cli_path = os.path.join(SRC, "kd", "cli.py")
-    with open(cli_path, encoding="utf-8") as f:
-        text = f.read()
-    m = re.search(r"def cmd_health\(.*?(?=\ndef |\Z)", text, re.S)
-    ok(m, "无法从 %s 定位 cmd_health(函数被改名/删除?)" % cli_path)
-    deps = sorted(set(re.findall(r"_cp\.([A-Za-z_][A-Za-z0-9_]*)", m.group(0))))
-    ok(deps, "cmd_health 已定位,但函数体内没有任何 `_cp.<name>` 引用"
-             "(取数逻辑被抽走/前缀被改)——否则本判据形同虚设")
-    impl = _impl()
-    missing = [n for n in deps if not hasattr(impl, n)]
-    ok(not missing, "health 依赖的内部件已失联: %s(health 运行时会崩,"
-                    "须在实现体里补回或改 cmd_health)——依赖清单 %r"
-       % (", ".join(missing), deps))
-
-
 @case("offline: kind 集合三源一致(ENTITY_KINDS / _DETAIL_KINDS / CLI 白名单)")
 def t_kind_consistency():
     """`kind` 集合必须**三处同集合**,且 CLI 不得复制裸字面量。
@@ -880,50 +862,32 @@ def t_internal_error():
 
 
 # ================= 离线组:CLI 进程级 =================
-@case("offline: kd health 库模式自检(无服务/无端口)")
-def t_cli_health():
-    code, d, err = cli("health")
-    ok(code == 0, "kd health 退出码 %r(应 0)" % code)
-    ok(d is not None, "kd health stdout 不是合法 JSON")
-    ks = keys_of(d, "health")
-    # ⚠️ v6.6:数据文件收敛为一个(ADR-0016)——原 routesCfg/routesCfgLoaded/maxRoutes/
-    # budgetMax 四个字段随 query_routes.json 与预算机制删除,改为 contractCfg/
-    # contractCfgLoaded/maxKeywords。报已删能力等于承诺不存在的东西。
-    check_subset(ks, {"ok", "service", "anonymous", "http", "noDiskWrite", "python",
-                      "executable", "coreApi", "missingApi", "contractCfg",
-                      "contractCfgLoaded", "maxKeywords", "rateProfile", "textMax",
-                      "commands", "note"}, "health 顶层")
-    for gone in ("routesCfg", "routesCfgLoaded", "maxRoutes", "budgetMax"):
-        ok(gone not in ks,
-           "health 仍报已删字段 %s(query_routes.json 与预算机制已整体删除)" % gone)
-    ok(d["ok"] is True, "health.ok 应为 True")
-    ok(d["http"] is False, "去服务化后 http 必须为 False")
-    ok(d["noDiskWrite"] is True, "内核应声明不落盘")
-    ok(d["missingApi"] == [], "coreApi 有缺失: %r" % (d["missingApi"],))
-    check_subset(set(d["coreApi"]), {"search", "read"}, "health.coreApi")
-    ok("ask" not in d["coreApi"], "health.coreApi 仍含 ask: %r" % (d["coreApi"],))
-    # spec 第 5 节:health 的 commands 字段 → ["search", "read", "health"]。
-    ok(set(d["commands"]) == {"search", "read", "health"},
-       "命令面应为 search/read/health,实为 %r" % (d["commands"],))
-    ok("ask" not in d["commands"], "ask 应已删除,health.commands 仍列出它")
-    ok("share" not in d["commands"], "share 应已删除")
-    ok(int(d["textMax"]) == 100, "health.textMax 应为 100")
-    ok("4097" not in (d.get("note") or "") or "不依赖" in (d.get("note") or ""),
-       "health.note 不应再承诺端口语义")
-
-
-@case("offline: kd --help 列出三条子命令、ask 与 share 都不存在")
+@case("offline: kd --help 只列 search/read;ask / share / health 都不存在")
 def t_cli_help():
+    """命令面 = 两条(2026-11-20,票 04;ADR-0011 增补记)。
+
+    `health` 是最后一个被删的子命令,删除理由与 `ask` / `share` 不同:它不越界,
+    它把**私有 implementation** 钉成了生产 seam。这里把三件事一并钉住:
+      ① `--help` 列出 search / read;
+      ② `--help` **不得**出现 health / ask / share(列出来就是在承诺能力);
+      ③ 删掉的命令按"不存在"退出 2,而不是被特判成某种"看起来像错误"的分支。
+    """
     p = subprocess.run([PY, RUN, "--help"], cwd=REPO, capture_output=True, text=True,
                        encoding="utf-8", errors="replace", timeout=60)
     ok(p.returncode == 0, "--help 退出码 %r" % p.returncode)
-    for c in ("search", "read", "health"):
+    for c in ("search", "read"):
         ok(c in p.stdout, "--help 未列出子命令 %s" % c)
-    ok("share" not in p.stdout, "--help 仍列出已删除的 share")
-    # ask 已整条删除(不留 "unsupported" 占位)。子命令列表里不得出现它。
-    ok("ask" not in p.stdout, "--help 仍列出已删除的 ask")
-    code, d, _ = cli("share")
-    ok(code != 0, "share 应已删除,实测退出码 %r" % code)
+    for gone in ("health", "share", "ask"):
+        ok(gone not in p.stdout,
+           "--help 仍列出已删除的子命令 %s —— 列出即承诺能力(ADR-0011 增补记)" % gone)
+    # 三条已删命令都必须按 argparse 的"未知子命令"退出 2(与 `kd nosuchcmd` 同路径,
+    # 说明它们是真的不存在,而不是被特判)。
+    for gone in ("health", "share", "ask"):
+        code, d, err = cli(gone)
+        ok(code == 2, "kd %s 应作为未知子命令 exit 2,实测 %r" % (gone, code))
+        ok(err and err.strip(), "kd %s 的 stderr 为空:用法提示被吞掉了" % gone)
+        if d is not None:
+            ok(d.get("ok") is not True, "kd %s 竟然返回了成功载荷: %r" % (gone, d))
 
 
 @case("offline: --help 在非 UTF-8 控制台上不崩(PYTHONIOENCODING=gbk → 退出码 0)")
@@ -935,9 +899,8 @@ def t_cli_help_non_utf8_console():
     (`--help` 在 `_out` 之前就 `SystemExit` 了)。于是 **zh-CN Windows 默认控制台
     (cp936/GBK)** 上 `kd --help` 抛
     `UnicodeEncodeError: 'gbk' codec can't encode character '\\u26a0'`(**退出码 1**,
-    文案里的 `⚠️`)。连带后果用户可见:`install.ps1` 的验证闸门跑的就是含
-    `t_cli_help`(断言 `--help` 退出码 0)的离线回归 ⇒ 中文 Windows 上**必然判红、
-    装不成功**(闸门没错,红的是它检的那条既有用例)。
+    文案里的 `⚠️`)。任意安装方式下用户第一眼就跑 `--help`,故它在 zh-CN Windows 上是
+    **开箱即红**(命令本身没错,错在控制台编码与文案里的不可编码字符)。
 
     判据是**命令级**的,不需要 Windows:`PYTHONIOENCODING=gbk` 跑真进程,三个
     `--help` 都必须退出码 0。修法在 `cli._harden_console()`(**只**改
@@ -965,30 +928,26 @@ def t_cli_help_non_utf8_console():
        % (out[:300],))
 
 
-@case("offline: kd ask 进程级调用 → exit 2(argparse:子命令不存在)")
-def t_cli_ask_gone():
-    """本轮硬证据(spec 第 5 / 第 10 节):`ask` 子命令**真删除**,不留占位。
+@case("offline: 已删子命令是真不存在,不是被特判成看起来像错误")
+def t_removed_subcommands_not_special_cased():
+    """`ask` 的删除硬证据(spec 第 5 / 第 10 节),**只保留不重复的那部分**。
 
-    退出码语义(spec 第 5 节:0/1/2 不变):
-      2 = 用法错误。argparse 对"未知子命令"在**解析期**就退出,故走 2 而非 1。
+    ⚠️ **2026-11-20(票 04)收窄**:本条原先还断言 ask 的退出码 2、stderr 非空、
+    stdout 无成功载荷 —— 那三件现在由 `t_cli_help` 对 ask / share / health **一并**断言,
+    在这里再写一遍就是同一件事的两个入口(Fowler: Duplicated Code)。
+    留下的两件是本条独有、且 `t_cli_help` 不看的:
 
-    实测口径备注(与 spec 文本的差异,已记录不自行调和):argparse 的用法错误直接
-    写 stderr,stdout 为空 —— 本项目"错误是带 hint 的 JSON"这条只覆盖**运行期**
-    错误(由 cli._fail/_usage_error 产出)。故此处断言的是:
-      ① 退出码恒为 2;② stdout **不得**出现任何成功载荷(ok:true / results);
-      ③ stderr 有内容(用法提示不会静默)。
-    `kd nosuchcmd` 走同一路径,一并断言两者等价,证明 ask 是真的不存在、
-    而不是被特判成了一个"看起来像错误"的分支。
+      ① **等价性**:`kd ask` 与 `kd nosuchcmd` 的退出码必须**相同** —— 若某天有人给
+         ask 加了一条 `elif cmd == "ask": ...` 的兼容分支,它会退化成"看起来像错误",
+         而 `t_cli_help` 的"exit 2"断言**抓不到**(特判分支也可以 exit 2)。
+      ② **argparse 真的不认它**:stderr/stdout 里必须报 `invalid choice`,
+         即它不在 parser 的可选集里 —— 判据取自 argparse 自己的措辞,不靠我们猜。
     """
-    code, d, err = cli("ask", QUERY)
-    ok(code == 2, "kd ask 退出码应为 2(argparse 未知子命令),实测 %r" % code)
-    ok(err and err.strip(), "kd ask 的 stderr 为空:用法提示被吞掉了")
-    if d is not None:
-        ok(d.get("ok") is not True, "kd ask 竟然返回了成功载荷: %r" % (d,))
-        ok(not d.get("results"), "kd ask 竟然返回了结果清单")
-    code2, d2, _ = cli("nosuchcmd")
-    ok(code2 == code, "kd ask 的退出码(%r)应与未知子命令(%r)一致——ask 未被特判" % (code, code2))
-    # 子命令确实不在 parser 的可选集里(直接读 --help 的用法行,不猜)。
+    code_ask, _, _ = cli("ask")
+    code_none, _, _ = cli("nosuchcmd")
+    ok(code_ask == code_none,
+       "kd ask 的退出码(%r)应与未知子命令(%r)一致 —— 不一致说明 ask 被特判了"
+       % (code_ask, code_none))
     p = subprocess.run([PY, RUN, "ask"], cwd=REPO, capture_output=True, text=True,
                        encoding="utf-8", errors="replace", timeout=60)
     ok("invalid choice" in p.stderr or "invalid choice" in p.stdout,
@@ -1118,11 +1077,75 @@ def t_cli_guard_op_for_read():
        % (hint, example, s_hint, s_example))
 
 
-@case("offline: stdout 只出 JSON,日志走 stderr")
+@case("offline: kd search 成功路径(进程级 exit 0 + 纯 JSON,零上游)")
+def t_cli_success_path_offline():
+    """**离线组的唯一成功路径 CLI 样本**(2026-11-20 票 04 补)。
+
+    为什么要补:原版这条地位由 `kd health` 占着(exit 0 + 一份 JSON,零上游)。health 删除后,
+    离线组里剩下的 `code == 0` 进程级断言**全部在联网组**(那些要真上游),于是
+    "成功路径的 stdout 被改坏"这种漂移**只有加 `--online` 才看得见** —— 而联网组默认不跑。
+    这属于「删掉一个用例时,它顺手承担的另一件事也消失了」,必须显式补回。
+
+    做法:打桩唯一网络出口 `_net._get_json`,在**子进程**里跑真 CLI(必须子进程 ——
+    进程内打桩测不到 `cli.main` 的退出码路径),只断言与 health 无关的那几件事:
+    exit 0、stdout 整块可解析、顶层 `ok is True`、诊断没有混进 stdout。
+
+    ⚠️ 不在这里断言字段集 —— 那是 `t_search_contract` 与冻结基线的活。本条只管
+    "成功路径还是不是 0 号退出码 + 纯 JSON"。
+    """
+    bootstrap = (
+        "import sys, json; sys.path[:0] = [" + repr(SRC) + "];"
+        "import kd._impl._net as _net;"
+        "\n_payload = {'ok': True, 'totalElements': 0, 'content': [], 'data': [],"
+        " 'result': [], 'page': 1, 'totalPages': 1, 'errorCode': None};"
+        "\n_net._get_json = lambda url, rate=None: dict(_payload);"
+        "\nimport kd.cli as _cli;"
+        "\n_cli.main(['search', '--kw', '离线成功路径'])"
+    )
+    p = subprocess.run([PY, "-c", bootstrap], cwd=REPO, capture_output=True, text=True,
+                       encoding="utf-8", errors="replace", timeout=120)
+    ok(p.returncode == 0,
+       "离线成功路径退出码 %r(应 0)。stderr 末尾: %r" % (p.returncode, (p.stderr or "")[-500:]))
+    try:
+        d = json.loads(p.stdout)
+    except Exception as e:
+        raise Fail("离线成功路径的 stdout 不是整块 JSON(%s)—— agent 会解析失败。"
+                   "stdout 前 300 字符: %r" % (e, (p.stdout or "")[:300]))
+    ok(d.get("ok") is True, "成功路径的顶层 ok 应为 True,实为 %r" % (d.get("ok"),))
+    ok("[kd]" not in (p.stdout or ""),
+       "stdout 里出现了 `[kd]` 进度行 —— 日志混进了数据流")
+
+
+@case("offline: stdout 只出 JSON,诊断信息走 stderr")
 def t_cli_stream_split():
-    code, d, err = cli("health")
+    """两条流的分工:数据走 stdout,诊断走 stderr(既有契约,不随 health 删除而变)。
+
+    ⚠️ **2026-11-20(票 04)换了载体**:原版用 `kd health` 当这条的载体 —— 它零上游请求、
+    只读本地,是最省事的样本。health 删除后必须另找一个**零上游请求**的样本,
+    否则这条会变成联网用例。选中的是 100 字硬闸的错误路径:它在发出任何请求**之前**
+    就 raise `QueryTooLong`,stdout 得到错误 JSON、退出码 1,而 stderr 可以另有内容。
+
+    两条一起钉:
+      ① 运行期错误:stdout **整块**就是一份可解析的 JSON —— 没有 `[kd]` 进度行混进来
+         (agent 直接 `json.loads(stdout)`,混一行就当场失败);诊断另在 stderr;
+      ② argparse 用法错误:stdout **空**,诊断在 stderr(它写的是 stderr 而非 stdout,
+         这正是 CLI 契约里"错误是带 hint 的 JSON"只覆盖运行期错误的原因)。
+    """
+    # ① 运行期错误:数据流干净。
+    code, d, err = cli("search", "--kw", "超" * 120)
+    ok(code == 1, "100 字硬闸应 exit 1,实测 %r" % code)
     ok(d is not None, "stdout 不是纯 JSON(混入了日志?)")
-    ok(code == 0, "health 退出码 %r" % code)
+    ok(isinstance(d.get("error"), dict), "stdout 缺 error 对象: %r" % (d,))
+    # 显式钉住"整块可解析":`cli()` 的 json.loads 已经会因混入进度行而失败,但那是
+    # **间接**的 —— 这里补一句直接判据,免得将来换掉 helper 时这条保护无声消失。
+    ok("[kd]" not in out_text("search", "--kw", "超" * 120),
+       "stdout 里出现了 `[kd]` 进度行 —— 日志混进了数据流(agent 解析 stdout 会失败)")
+
+    # ② 用法错误:走 argparse,诊断只进 stderr。
+    code, d2, err2 = cli("nosuchcmd")
+    ok(code == 2, "未知子命令应 exit 2,实测 %r" % code)
+    ok(d2 is None, "用法错误不应在 stdout 产出 JSON,实测 %r" % (d2,))
+    ok(err2 and err2.strip(), "用法错误的 stderr 为空:诊断信息被吞掉了")
 
 
 @case("offline: 内核不做仓外落盘(无 landing 字段、无日志文件写盘)")
@@ -1149,7 +1172,8 @@ def _impl():
     """内部观测口:实现包的内部件(去重键/排序/投影/拆词)。
 
     这些件是**有意的**内部件(不在 kd.core 公开面),用观测口取而非从 kd.core
-    摸私有属性——与 cli.cmd_health 取数的口径一致。
+    摸私有属性。⚠️ kd health 删除后(ADR-0011 增补记),观测口只服务本套件,
+    不再有 CLI 生产读点。
 
     包路径变更(2026-09-18):实现体由模块 `kd._core_impl` 拆成包 `kd._impl`,
     但**口径不变**——`core._impl()` 仍返回承载实现的对象(现为包),内部件由其
@@ -4006,137 +4030,98 @@ def t_budget_mechanism_removed():
 
 
 
-@case("offline: 装机数据文件齐全且与仓库同源(漏拷=装出来的行为不同)")
-def t_install_data_files():
-    """**装机同步钉子**。
+@case("offline: 打包面齐全 —— console script / package-data / 入口模块,且无定制安装器")
+def t_package_data_files():
+    """**打包面钉子**(2026-11-20 票 04 改写;原 `t_install_data_files`)。
 
-    治的病有两次实证:
-      * `install.sh` 的注释说"检查两个数据文件",代码**只查了 query_routes.json**
-        —— 察觉到一半(`contract.json` 缺失时 health 冒烟不受影响,抓不住);
-      * 本轮又踩了一次:改完 `SKILL.md` / `contract.json` 后忘了重跑安装,
-        仓库版与安装版 md5 不同 —— **改的是仓库,跑的还是旧版**。
+    原用例守的是"定制安装脚本装出来的东西和仓库同源"——脚本一删,那个观察面就不存在了。
+    但它的**下半部分**守的是一件与脚本无关的事:`contract.json` 是不是真的随包走。
+    那件事现在由 pyproject 的打包元数据承担,故判据跟着搬到打包面,一个都不能少:
 
-    本条钉两件事(都不联网、不依赖"当前机器恰好装过"):
-      ① 装机脚本的校验**真的覆盖两个数据文件**(源码级:两个文件名都在校验段出现);
-      ② `contract.json` 的键集必须**能被代码从包内读到** —— 即它是随包走的,
-         而不是只存在于仓库(测试/文档目录装机后就没有)。
+      ① `contract.json` 物理在包内(`src/kd/`),`query_routes.json` 不得回来;
+      ② pyproject 的 `package-data` **恰为** `{contract.json}` —— 漏声明则 `pip install`
+         装出来的包缺声明文件,行为会静默回落到内置兜底集;
+      ③ `[project.scripts]` 仍提供 `kd = "kd.cli:main"` —— 那是 pipx / pip 唯一能拿到
+         命令的入口(定制安装器已删,这里是**唯一**的发行入口);
+      ④ `python -m kd` 与仓库内 `kd_run.py` 两个入口文件仍在(票 04 范围明写保留三种调用方式);
+      ⑤ 声明能被代码**真的读到**(读失败会静默回落兜底集,不能靠"文件在"过关);
+      ⑥ 定制安装器**不得回来** —— `install.sh` / `install.ps1` 不在 tracked tree
+         (票 04 验收 1 的原话就是"不再在 tracked tree";判据不落在"盘上有没有",
+         因为在本地留个旧副本试跑是正常操作,那不该判红)。
+
+    ⚠️ 原用例的两段**有意删除**,不迁:
+      * `install.ps1` 的 UTF-8 BOM 判据 —— 文件不存在了,判据失去对象;
+      * 真跑一次 `install.sh` 再核对装机产物的完整性 —— 同样失去对象。技能目录的指针
+        解析仍由源码树一侧的 `t_doc_pointers_resolve` 守着,不是漏掉了。
     """
-    sh = open(os.path.join(REPO, "install.sh"), encoding="utf-8").read()
-    ps1 = open(os.path.join(REPO, "install.ps1"), encoding="utf-8").read()
-    for name, src in (("install.sh", sh), ("install.ps1", ps1)):
-        # ⚠️ v6.6:数据文件**收敛为一个**(contract.json)。原校验覆盖两个
-        # (query_routes.json + contract.json),前者已随拆词器与预算机制整体删除
-        # (ADR-0016),故改为断言"只校验 contract.json 且不再提 query_routes.json"
-        # ——后者若还留着,说明装机脚本与包内容脱节(装机必失败)。
-        ok("contract.json" in src,
-           "%s 的校验段未覆盖 contract.json(它是包内唯一数据文件)" % name)
-        # ⚠️ 判据落在**可执行的校验语句**上,而不是"文件里有没有这个词":
-        # 注释里记着"原 query_routes.json 已删除"是必要的留证。用 shell/pwsh 的
-        # 校验行本身做判据(它长这样:for f in query_routes.json ... / @("a","b"))。
-        # 判据:校验语句里出现的文件名集合,必须恰为 {contract.json}。
-        import re as _re
-        if name.endswith(".sh"):
-            stmt = _re.findall(r"for f in ([^;]+);", src)
-        else:
-            stmt = _re.findall(r"foreach \(\$f in @\(([^)]+)\)\)", src)
-        ok(stmt, "%s 里定位不到数据文件校验语句(校验被删了?)" % name)
-        names = set()
-        for chunk in stmt:
-            for tok in _re.findall(r"[A-Za-z0-9_./\\-]+\.json", chunk):
-                names.add(os.path.basename(tok))
-        ok(names == {"contract.json"},
-           "%s 的校验语句覆盖的数据文件应为 {contract.json}(v6.6 只剩一个),实为 %r"
-           " —— 若含 query_routes.json,装机将必然失败(该文件已删除)"
-           % (name, sorted(names)))
-    # ② 数据文件必须**物理存在于包内目录**(随包走,装机才拷得到);
-    #    且已删的那个不得回来。
+    import re as _re
+
+    # ① 包内数据文件物理存在;已删的那个不得回来。
     ok(os.path.exists(os.path.join(SRC, "kd", "contract.json")),
-       "包内缺 contract.json —— 它不在 src/kd/ 里,装机脚本无论怎么校验都拷不到")
+       "包内缺 contract.json —— 它不在 src/kd/ 里,任何安装方式都拷不到")
     ok(not os.path.exists(os.path.join(SRC, "kd", "query_routes.json")),
        "包内仍有 query_routes.json —— 已整体删除(ADR-0016)")
-    # pyproject 的 package-data 也必须同步(否则 pip 安装会漏拷声明)。
-    # ⚠️ 只判 **package-data 的实际声明行**(注释里的历史留证不算)。
+
     pj = open(os.path.join(REPO, "pyproject.toml"), encoding="utf-8").read()
-    import re as _re2
-    pd = _re2.search(r"\[tool\.setuptools\.package-data\](.*?)(?=\n\[|\Z)", pj, _re2.S)
+
+    # ② package-data 恰为 {contract.json}(注释里的历史留证不算)。
+    pd = _re.search(r"\[tool\.setuptools\.package-data\](.*?)(?=\n\[|\Z)", pj, _re.S)
     ok(pd, "pyproject.toml 里定位不到 package-data 段")
-    declared_files = set(_re2.findall(r'"([^"]+\.json)"', pd.group(1)))
+    declared_files = set(_re.findall(r'"([^"]+\.json)"', pd.group(1)))
     ok(declared_files == {"contract.json"},
        "pyproject.toml 的 package-data 应恰为 {contract.json},实为 %r"
        "(含 query_routes.json 会让 pip 安装因缺文件报错)" % (sorted(declared_files),))
-    # ③ 声明能被代码读到(不是"文件在但读不到")。读失败会静默回落兜底集,
-    #    故这里断言"读到的声明非空",否则回落会被误认为同步成功。
-    cp = _impl()
-    ok(cp.result_keys() and cp.top_keys() and cp.default_product_id() is not None,
-       "包内 contract.json 未被代码读到(声明为空 → 已静默回落兜底集)"
-       "—— 装机后字段集会与开发时不同而无任何信号")
-    # ④ limits 段(原 query_routes.json 的两个仍有效值)必须真被读到。
-    ok(cp.max_keywords() == 7,
-       "limits.maxKeywords 未从声明读到(实为 %r)—— 路数上限回落了内置兜底值" % (cp.max_keywords(),))
-    ok(cp._rate_profile() == "interactive",
-       "limits.rate 未从声明读到(实为 %r)" % (cp._rate_profile(),))
-    # ⑤ **install.ps1 必须带 UTF-8 BOM**(v6.6 审查补,边界钉子)。
-    #    治的病:本轮编辑该文件时 BOM 被静默丢掉(它有 2877 个非 ASCII 字节,
-    #    全是中文注释与装机提示)。Windows PowerShell 5.1 对**无 BOM** 的 .ps1
-    #    按系统 ANSI 代码页解码 —— 中文全乱码,而脚本仍会"成功执行",
-    #    无任何报错。这是典型的静默回归:改动者看不见、用户看得见。
-    #    判据是**首三字节**(不是"文件里有没有中文"),因为乱码的成因就是 BOM 缺失。
-    with open(os.path.join(REPO, "install.ps1"), "rb") as f:
-        head = f.read(3)
-    ok(head == b"\xef\xbb\xbf",
-       "install.ps1 缺 UTF-8 BOM(首三字节 %r)——它含大量中文字面量,"
-       "PowerShell 5.1 会按 ANSI 解码导致乱码,且不报错" % (head,))
 
-    # ⑤ **装机完整性**:真跑一次安装,再断言装机产物含 SKILL.md 引用的每一个文件。
-    #   ⚠️ **2026-11-17(票 08)补**。规格 Testing Decisions 的第四类指标写明「跑完安装流程后,
-    #   技能目录里必须含 SKILL.md 引用的每一个文件」,而这条一直只有人工实跑。它要治的病也正是
-    #   本仓踩过的那个:SKILL.md 从八处指向 `docs/ANSWER-SPEC.md`,而装机脚本只 `cp -r` 技能目录,
-    #   客户端照指针走过去是空的 —— 而本机 `~/.agents/skills/` 当时根本不存在,这个断链一次都没被发现。
-    #   源码树里断言「指针目标存在」抓不到它:源码树有 `docs/`,装机产物没有。
-    #
-    #   做法是**折进本条既有用例**,不新增钉子(判据同属装机同步,拆成两条只会让同一件事两个入口),
-    #   并把 `HOME` 与 `--root` 一起指到临时目录 —— 不碰本机真实的 `~/.agents/skills` 与
-    #   `~/.kingdee-kit`,所以跑完之后本机装过的那一份原样不动。
-    import shutil as _shutil, tempfile as _tempfile
-    tmp = _tempfile.mkdtemp(prefix="kd-install-")
-    try:
-        env = dict(os.environ, HOME=tmp)
-        cp = subprocess.run(
-            ["bash", os.path.join(REPO, "install.sh"),
-             "--root", os.path.join(tmp, ".kingdee-kit"),
-             "--no-path", "--no-verify", "--harness", "agents"],
-            cwd=REPO, env=env, capture_output=True, text=True, timeout=180)
-        ok(cp.returncode == 0,
-           "装机脚本在临时 HOME 下跑失败(exit %r)—— 装机完整性无从核对:\n%s"
-           % (cp.returncode, (cp.stderr or cp.stdout)[-1200:]))
-        installed = os.path.join(tmp, ".agents", "skills", "kingdee-knowledge")
-        ok(os.path.isdir(installed),
-           "装机后没有 %s —— --harness agents 应把它装进 $HOME/.agents/skills/" % installed)
-        # 要装的清单 = SKILL.md 里每一条**同目录**的文件指针(排除 URL / 家目录 / 模板占位)。
-        # 只认同目录,是因为装机单元就是这一个目录;写 `docs/xxx.md` 的指针本来就不该出现
-        # (由 `t_doc_pointers_resolve` 在源码树一侧守着)。
-        skill_src = os.path.dirname(_DOC_SKILL)
-        want = {"SKILL.md"}
-        for m in _re.finditer(r"`([^`\n]+\.md)`", open(_DOC_SKILL, encoding="utf-8").read()):
-            tok = m.group(1).strip()
-            if any(c in tok for c in "<>{}$*") or tok.startswith(("~", "/", "http")) or "/" in tok:
-                continue
-            want.add(tok)
-        ok(len(want) > 1,
-           "SKILL.md 里没解析出任何同目录 reference 指针(只解析到 %r)—— 装机完整性这条成了恒真"
-           % (sorted(want),))
-        missing = sorted(f for f in want if not os.path.exists(os.path.join(installed, f)))
-        ok(not missing,
-           "装机产物缺 SKILL.md 引用的文件: %r —— 客户端 agent 照指针走过去是空的"
-           "(这正是 2026-11 那次断链的形态:SKILL.md 指 docs/,而装机只拷技能目录)。"
-           "引用清单:%r;装机目录:%s" % (missing, sorted(want), installed))
-        # 反向确认:装机目录里若少了源目录里有的一份,上面那句必须红 —— 故先确认源目录**有**这些文件,
-        # 否则 want 是个空集,断言会以「一条都没解析出来」红,那是另一回事。
-        for f in sorted(want):
-            ok(os.path.exists(os.path.join(skill_src, f)),
-               "源码技能目录缺 %s —— 装机断言要装的清单里有一份在源码里就不存在" % f)
-    finally:
-        _shutil.rmtree(tmp, ignore_errors=True)
+    # ③ console script:定制安装器删掉后,这是**唯一**的发行入口。
+    ok(_re.search(r'^\[project\.scripts\]\s*$', pj, _re.M),
+       "pyproject.toml 缺 [project.scripts] 段 —— 删掉定制安装器后,这是拿到 `kd` 命令的"
+       "唯一入口(pyproject 的 console script 必须保留)")
+    ok(_re.search(r'^kd\s*=\s*"kd\.cli:main"\s*$', pj, _re.M),
+       "pyproject.toml 的 [project.scripts] 不再把 kd 指向 kd.cli:main —— "
+       "pipx / pip 装出来的命令会消失或指向错误位置")
+
+    # ④ 另两个入口文件仍在(票 04 范围:三种调用方式都保留,删 health 不得扩大到入口迁移)。
+    for rel in (os.path.join("src", "kd", "__main__.py"),
+                os.path.join("src", "kd_run.py")):
+        ok(os.path.exists(os.path.join(REPO, rel)),
+           "入口 %s 不见了 —— 票 04 范围明写保留 console script / python -m kd / "
+           "仓库内 kd_run.py 三种调用方式,删 health 不得扩大到入口迁移" % rel)
+
+    # ⑤ 声明能被代码**真的读到**,不是"文件在"。
+    #    ⚠️ **判据是 `contract_loaded()`,不是拿值比常量**(2026-11-20 票 04 修):
+    #    原版写 `max_keywords() == 7` / `_rate_profile() == "interactive"` —— 这两条
+    #    **在声明文件缺失时照样通过**,因为 `_FALLBACK_MAX_KEYWORDS` 恰好也是 7、
+    #    `profile()` 自己也把未知值归一到 `"interactive"`。那是恒绿的检查,
+    #    而它下面那句"路数上限回落了内置兜底值"因此**永远不可达**。
+    #    另外那个字面量 `7` 是本套件自己的"第二份真相"(本文件开头明令禁止)。
+    cp = _impl()
+    ok(cp.contract_loaded() is True,
+       "包内 contract.json 未被代码读到 —— 已静默回落内置兜底集"
+       "(装出来的字段集会与开发时不同,且没有任何信号)")
+    # 读到之后,值必须来自声明而非兜底:拿声明里的数比,不手写。
+    want_kw = int(_CONTRACT["limits"]["maxKeywords"])
+    ok(cp.max_keywords() == want_kw,
+       "limits.maxKeywords 与包内声明不一致(读到的 %r / 声明 %r)—— "
+       "说明读到的是兜底值而不是声明" % (cp.max_keywords(), want_kw))
+    # 限速档名由 `_RATE.profile()[0]` 给出,而声明里 `limits.rate` 的**键名**就是档位名
+    # (切档通路已删除,恒为 `interactive`)。故判据是"档位名必须能在声明里找到对应档",
+    # 不从声明派生就等于没比。
+    ok(cp._rate_profile() in (_CONTRACT["limits"]["rate"] or {}),
+       "当前限速档 %r 在 contract.json 的 limits.rate 里找不到对应档位(声明 %r)"
+       % (cp._rate_profile(), sorted((_CONTRACT["limits"]["rate"] or {}).keys())))
+
+    # ⑥ 定制安装器不得回来 —— 判据是**tracked tree**,不是"盘上有没有"。
+    #    票 04 的验收 1 原文是"不再在 tracked tree";用盘上存在性会误伤一类正常情形:
+    #    有人在本地留了旧脚本的副本(或从 git 历史 boss restore 回来试跑),那不该判红。
+    #    真该红的只有"它们又进了版本库"。
+    tracked = subprocess.run(["git", "ls-files", "--", "install.sh", "install.ps1"],
+                             cwd=REPO, capture_output=True, text=True, timeout=60)
+    ok(tracked.returncode == 0,
+       "git ls-files 失败(不是 git 仓库?): %r" % (tracked.stderr[-300:],))
+    still = [x for x in (tracked.stdout or "").split() if x in ("install.sh", "install.ps1")]
+    ok(not still,
+       "定制安装器又进了 tracked tree: %r —— 发行只走 pyproject + pip/pipx"
+       "(ADR-0011 增补记推翻了「保留一键脚本」,别再把它加回来)" % (still,))
 
 
 @case("offline: 上游故障分类单一来源(边界够宽且不吞程序缺陷)")

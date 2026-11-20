@@ -8,9 +8,9 @@
 逆向自金蝶云社区公开检索后端,**零账号、零 cookie、零官方点数、零模型依赖**——检索、全文、问答帖全匿名;
 本套件**只出清单、不合成回答**(ADR-0008):`kd search` 出标题清单 → 调用方 agent 自己挑 → `kd read` 取全文 → 按规范合成带引用回答。
 
-[为什么选 kd](#为什么选-kd) · [安装](#安装) · [命令](#kd-命令3-条) · [进阶](#进阶) · [使用前必读](#️-使用前必读) · [安全](#安全)
+[为什么选 kd](#为什么选-kd) · [安装](#安装) · [命令](#kd-命令2-条) · [进阶](#进阶) · [使用前必读](#️-使用前必读) · [安全](#安全)
 
-> **Note for AI assistants**:① 先跑 `kd --help` 看三条子命令,再跑 `kd health` 确认内核可用;
+> **Note for AI assistants**:① 先跑 `kd --help` 看两条子命令;
 > ② stdout 永远是 JSON 数据,进度在 stderr,错误是带 `hint` 的 JSON;③ 回答格式遵循 [skills/kingdee-knowledge/skills/kingdee-knowledge/ANSWER-SPEC.md](skills/kingdee-knowledge/skills/kingdee-knowledge/ANSWER-SPEC.md)。
 
 ## ⚠️ 使用前必读
@@ -24,13 +24,13 @@
 
 ## 为什么选 kd?
 
-- **为 agent 原生设计** —— 默认 JSON、stdout=数据/stderr=进度、错误即数据(`hint` 带修复指引)、退出码 0/1/2、永不交互;`kd --help` 与 `kd health` 自曝命令面与内核状态,agent 不读长文档即会用
+- **为 agent 原生设计** —— 默认 JSON、stdout=数据/stderr=进度、错误即数据(`hint` 带修复指引)、退出码 0/1/2、永不交互;`kd --help` 自曝命令面与示例,agent 不读长文档即会用
 - **免费且无门槛** —— 官方 AI 问答要登录+点数,kd 全链路匿名,零账号零点数
 - **覆盖面完整** —— 官方文档、社区问答帖(含采纳回答与追问链)、社区文章,三种来源一次打通
 - **不被模型绑死** —— 套件不持有任何模型通道,零模型依赖;清单与全文交给调用方 agent,用哪个模型、要不要开子代理,你自己定
 - **排序交给上游** —— 每一路检索拿回的都是金蝶云社区官方综合排序的结果,内核**只去重、不做任何算法评分**(没有 RRF、没有融合分、没有 hitRoutes 加权);清单顺序本身就是相关度顺序,读哪几篇由 LLM 判断
 - **回答有规范** —— [ANSWER-SPEC](skills/kingdee-knowledge/skills/kingdee-knowledge/ANSWER-SPEC.md) 对齐官方 AI 样例:原因分析→分步方案→操作边界、表格、`knowledge`/`article`/`question` 引用做成可点击链接(问答用长形式 `/questions/<帖子号>/answers/<回答号>`,2026-09-29 改判)、资料未覆盖诚实声明;不达标时如实说明,不硬凑
-- **零依赖部署** —— 内核与 CLI 均为 Python 纯标准库,无第三方依赖,`pipx install` 一条命令即可(无 Python 环境时用一键脚本兜底)
+- **零依赖部署** —— 内核与 CLI 均为 Python 纯标准库,无第三方依赖,`pipx install` 或 `pip install` 一条命令即可;没有定制安装脚本,装什么由标准打包决定
 
 ## 功能
 
@@ -62,7 +62,7 @@
 > (砍 `questionId`/`views`/`updatedAt`)。
 > **v6.3**:去服务化(ADR-0011)——HTTP 服务与十个端点、`kd share` / `kd manifest` 命令、本地落盘缓存
 > (`corpus/`、`~/.lingeebuild/landing`、`data/ksearch.db`)、`semantic_rerank` 与 `run_eval` 评测体系全部删除;
-> 检索内核改为可 import 的库(`kd.core` 公开面 = `search`/`read` + 三异常类),CLI 只剩 `search`/`read`/`health` 三条。
+> 检索内核改为可 import 的库(`kd.core` 公开面 = `search`/`read` + 三异常类),CLI 只剩 `search`/`read` 两条(`health` 于 2026-11-20 删除,ADR-0011 增补记)。
 > v6.2:合成权移交调用方(ADR-0008)——`kd ai` 删除、`KAI_*` 环境变量废除,套件零模型依赖;原句作为独立检索路参与 RRF(ADR-0009);召回置信度用三档枚举(ADR-0010)。
 > v6.0:彻底在线(ADR-0005)——查询时多路检索为主轴,corpus 预爬语料废除;
 > v5.0:grep 语料路线定案(corpus+rg 接管检索角色,向量降级待墙),见 `docs/adr/0004`;
@@ -70,76 +70,53 @@
 
 ## 安装
 
+发行只走标准打包:`pyproject.toml` 的 `[project.scripts]` 提供 `kd`,包内数据文件
+`contract.json` 随包分发。**没有定制安装脚本**——`install.sh` / `install.ps1` 已于
+2026-11-20 删除(ADR-0011 增补记),装什么、装到哪由 pip / pipx 的标准语义决定。
+
 ### ① pipx(推荐,有 Python 3.8+ 的机器)
 
 ```bash
-pipx install kingdee-knowledge-kit && kd health
+pipx install kingdee-knowledge-kit
+kd --version
 ```
 
-由 `pyproject.toml` 的 `[project.scripts]` 提供 `kd`,升级/卸载交给 pipx 管。零第三方依赖,装完即可用。
+升级 `pipx upgrade kingdee-knowledge-kit`,卸载 `pipx uninstall kingdee-knowledge-kit`。
+零第三方依赖,装完即可用。
 
-### ② 一键脚本(兜底:无 Python 环境或统一装机)
-
-脚本自身不含源码 —— 库体(`src/kd`)、技能(`skills/`)、验证闸门(`tests/kd_regression.py`)
-都从**仓库检出**里取,所以它的稳态用法是**先克隆再原地运行**:
-
-Linux / macOS:
+### ② pip(装进某个环境里,或当库用)
 
 ```bash
-git clone --depth 1 https://github.com/Drivpe/kingdee-knowledge-kit.git
-cd kingdee-knowledge-kit && ./install.sh
+pip install kingdee-knowledge-kit
 ```
 
-Windows PowerShell(同样在检出目录里):
+装成库之后,内核的用法与 CLI 完全等价:
 
-```powershell
-powershell -ExecutionPolicy Bypass -File install.ps1
+```python
+from kd.core import search, read
+
+pack = search(keywords=["信用额度控制", "应收单 信用"], product_id=93)
+hit = pack["results"][0]
+doc = read(hit["type"], hit["id"])          # type 照抄清单条目的 type
 ```
-
-也可以直接管道下发:管道形式下脚本没有"脚本自身所在目录",它会先把仓库**浅克隆到临时目录**
-再继续,装完即删。这条路多两个前提 ——
-
-```powershell
-# Windows PowerShell
-irm https://raw.githubusercontent.com/Drivpe/kingdee-knowledge-kit/main/install.ps1 | iex
-```
-
-```bash
-# Linux / macOS
-curl -fsSL https://raw.githubusercontent.com/Drivpe/kingdee-knowledge-kit/main/install.sh | bash
-```
-
-- 需要 `git` 且能访问 GitHub(拉不到就回落成下面的清晰报错,不会半途失败);
-- **管道下发的脚本 = 远程那一版**:远程还没同步时,你拿到的是旧脚本,探测与报错逻辑都不参与,
-  所以**远程落后时请用上面的 clone 形式**。
-
-两种形式都取不到检出目录时,脚本**不半途失败**:它打印上面的 clone 用法并以非 0 退出
-(不会出现 `cp: cannot stat '…/src/kd'` 这种既看不懂也不知道怎么办的报错)。
-
-装什么:①kd CLI(`~/.kingdee-kit/bin` 或 `%USERPROFILE%\.kingdee-kit\bin`,加入 PATH)
-②技能(`~/.agents/skills/kingdee-knowledge`) ③自动跑 `tests/kd_regression.py` 的离线组,**全绿才放行**
-(该组条数以脚本自身输出为准;`kd health` 冒烟验证同一批闸门)。
-开关:`--root DIR` / `--no-path` / `--no-skills` / `--no-verify`(PowerShell 侧为 `-InstallRoot -NoPath -NoSkills -NoVerify`)。
 
 > 内核是**库**,不是服务:安装后不常驻进程、不开端口、不写仓外数据。
 
 ### ③ AI Agent 三步接入(已有 kd 的机器)
 
-> ⚠️ **装完第一件事是自举 PATH。** `install.sh` / `install.ps1` 把 PATH 写进 shell 的
-> 交互启动文件(`~/.bashrc` / `~/.zshrc` / 用户环境变量),而 **agent 跑的是非交互 shell
-> —— 这些文件根本不被读取**。于是"装好了、人也能用,agent 敲 `kd` 却报
-> `command not found`"。这不是装坏了,是 PATH 没带过去:
+> ⚠️ **装完第一件事是自举 PATH。** pipx 把 `kd` 放进 `~/.local/bin`,而 **agent 跑的是
+> 非交互 shell**——`~/.bashrc` / `~/.zshrc` 根本不被读取。于是"装好了、人也能用,agent
+> 敲 `kd` 却报 `command not found`"。这不是装坏了,是 PATH 没带过去:
 >
 > ```bash
-> export PATH="$HOME/.local/bin:$HOME/.kingdee-kit/bin:$PATH"; kd --version
+> export PATH="$HOME/.local/bin:$PATH"; kd --version
 > ```
 >
-> 这条命令自己前置两个落点(pipx 的 `~/.local/bin` 与一键脚本的 `~/.kingdee-kit/bin`),
 > 不依赖任何 rc 文件,bash / zsh / sh 通用。回显版本号即成功,同一 shell 内后续照常写 `kd`。
-> 技能正文的「第一步永远是自举 PATH」小节已把它写成**每个任务的第一步**,agent 读技能即照做。
+> 技能正文的「第一步永远是自举 PATH」小节已把它写成**每个任务的第一步**。
 
 ```text
-1. 自举 PATH,再跑 kd --version / kd health —— 确认内核可用;kd --help 看三条子命令与示例
+1. 自举 PATH,再跑 kd --version —— 确认内核可用;kd --help 看两条子命令与示例
 2. 有技能的 agent:装下面技能后问金蝶问题即自动走 kd;没有技能:把 --help 输出读进上下文
 3. 流程固定三步:`kd search` 出清单 → 自己挑 → `kd read` 取全文 → 按 skills/kingdee-knowledge/skills/kingdee-knowledge/ANSWER-SPEC.md 的格式合成(带引用,资料未覆盖要声明)
 ```
@@ -148,21 +125,20 @@ curl -fsSL https://raw.githubusercontent.com/Drivpe/kingdee-knowledge-kit/main/i
 `~/.agents/skills/`;或 `npx skills add Drivpe/kingdee-knowledge-kit`;或 ZCode 插件面板
 Settings → Plugins → Discover → 添加本仓库 GitHub 地址 → Get。
 
-### ④ 开发者
+### ④ 开发者(仓库内直跑,不装也能用)
 
 ```bash
 git clone https://github.com/Drivpe/kingdee-knowledge-kit.git && cd kingdee-knowledge-kit
-powershell -File install.ps1 -InstallRoot D:\kit -NoPath -NoSkills   # Windows 自定义
-bash install.sh --root ~/kit --no-path --no-skills                   # *nix 自定义
+python3 src/kd_run.py --help          # 免设 PYTHONPATH 的仓库内启动器
+pip install -e .                      # 或装成可编辑包,拿到 kd 命令
 ```
 
-## kd 命令(3 条)
+## kd 命令(2 条)
 
 | 命令 | 作用 |
 |---|---|
 | `kd search --kw 词 [--kw 词]… [--product 87] [--global] [--include-other]` | 检索:**只出帖级标题清单**(官方文档/社区问答/文章三类实体;罕见类型归入 `other` 档且**默认隐藏**),按 (你给词的顺序, 词内上游名次) 排列 |
 | `kd read <id> [--kind knowledge\|question\|article]` | 读全文:`--kind` 照抄 search 结果的 `type`,零翻译(注:`other` 档是合法 type 但**没有全文端点**,`read` 会明确说明) |
-| `kd health` | 内核自检(库模式:无服务、无端口、无 HTTP) |
 
 `--product` 语义:93=星空旗舰版(默认)、87=苍穹、1=星空企业版/标准版、2=星空侧二开问答专区、0=不过滤(显式指定才生效)。
 编号与中文标签的**唯一真源是 `src/kd/contract.json` 的 `productIds.names`**,本行只复述。
@@ -185,7 +161,7 @@ bash install.sh --root ~/kit --no-path --no-skills                   # *nix 自�
 - 错误是 JSON `{"code","message","hint","example"}`,`hint` 给修复指引(含可执行下一步)
 - 退出码:`0` 成功 / `1` 上游或内部错误 / `2` 用法错误
 - 永不交互;两级 `--help` 带示例;大输出标 `truncated` 并指路下一步
-- agent 自发现:`kd --help` 带三条子命令与示例;`kd health` 回吐内核版本、公开面、契约声明路径与收词上限
+- agent 自发现:`kd --help` 带两条子命令与示例,`kd --version` 回显内核版本
 
 ### `search` 返回字段
 
@@ -252,8 +228,8 @@ bash install.sh --root ~/kit --no-path --no-skills                   # *nix 自�
 
 改内核/CLI 后:`python3 tests/kd_regression.py`(离线组,不联网、不需要任何环境变量;该组条数以脚本自身输出为准);
 联网用例加 `--online`(另跑一组真实上游用例,数量同样以脚本输出为准;保持人类频率)。
-离线组内含原先由 `scripts/check_core_surface.py` 承担的三条判据(版本号单一真源 /
-`health` 内部件依赖可解析 / kind 集合三源一致)——该脚本已于 v6.4 整体删除。
+离线组内含原先由 `scripts/check_core_surface.py` 承担的判据(版本号单一真源 / kind 集合三源一致;
+原第三条 `health` 内部件依赖可解析随 `kd health` 一并删除)——该脚本已于 v6.4 整体删除。
 检索侧改动另需手工用例验收(原 `run_eval` 评测体系已随去服务化删除)。
 
 ## 安全

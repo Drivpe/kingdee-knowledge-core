@@ -3,7 +3,7 @@
 
 包形态(ADR-0011 去服务化 + ADR-0013 单入口):
   src/kd/core.py      唯一检索入口;公开面只有 search / read
-  src/kd/cli.py       argparse 命令面(search / read / health)
+  src/kd/cli.py       argparse 命令面(search / read)
   src/kd/__main__.py  python -m kd 入口
   src/kd/_impl/       私有实现包(按职责拆分的子模块)
   src/kd/contract.json  对外契约声明的单一来源(字段集/产品线表/链接政策/运行上限)
