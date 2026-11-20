@@ -56,7 +56,7 @@ HDRS = {"User-Agent": UA, "Accept": "application/json"}
 #       `question` 的 url 改为带回答号的长形式且 `linkPolicy.question` 由 no-link 改 link、
 #       `limits.rate` 上调到 burst 7 / rps 5、`limits` 新增 maxDetail、
 #       `read` 删 `max_answer_pages`、网络出口统一为 `_net._get_json` 单点。
-#       施工记录见 docs/specs/2026-09-29-内核行为出入修复与交互提速-施工规格.md。
+#       施工记录档案已随内核仓文档裁剪删除(历史走 git);决策与判据见 docs/adr/0017-上游频率红线重新读数.md。
 # 6.6 = 检索词生成权移交调用层(ADR-0016,2026-09-28)**破坏性变更**:
 #       内核不再生成任何检索词(拆词器/路序表/截断优先级整体删除)、CLI 删位置参数与
 #       --type/--max-routes/--budget/--chunk、预算机制删除、--product 三态收两态、

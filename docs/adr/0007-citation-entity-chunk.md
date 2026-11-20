@@ -1,6 +1,6 @@
 # ADR-0007:引用形态改为「标题 + entityId + chunkId」,废除网页 URL 引用
 
-日期:2026-09-06 | 状态:已采纳(票 #20 拍板立项) | 关联:ADR-0005(引用粒度词条继承)、docs/research/2026-09-06-official-ai-frontend-recon.md(已于 2026-09-15 移出公开仓,全文在私有仓)、docs/research/2026-09-06-product-routing-and-link-availability.md
+日期:2026-09-06 | 状态:已采纳(票 #20 拍板立项) | 关联:ADR-0005(引用粒度词条继承);原两份取证档(`official-ai-frontend-recon` 已在私有仓、`product-routing-and-link-availability` 已删档)均不作为活指针,历史走 git
 
 ## 背景
 
@@ -32,7 +32,7 @@
 
 - 实测:四类网页 URL 匿名 302→passport;`/aisapi/document-chunks/2659901` 匿名 200 含全文与映射;
 - bundle 常量表:SEARCH_CHRUNKS_DETAIL 端点;官方分享对话 refs 结构(entityId/entityType/chunk id);
-- 事故复盘:docs/research/2026-09-06-product-routing-and-link-availability.md 缺陷 2。
+- 事故复盘:原始取证档已随内核仓文档裁剪删除(历史走 git);事故结论保留在本 ADR 正文。
 
 ## 后续更正(2026-09-18,ADR-0013)
 

@@ -61,9 +61,9 @@ _URL_OF = {"knowledge": VIP + "/knowledge/%s",
 # `results` **逐字段相同**。即该键是**生产死键**,唯一读点是测试的存在性断言 ——
 # 本仓已把"只有测试读"判为病(`CONTEXT.md` 的契约声明条,同型病在 `topKeys` 上
 # 复发过一次),故正确收口是**删键**,不是给它补一个假消费者。
-# 证据链未丢:`other` 无可点网页形式的实测记录在
-# `docs/research/2026-09-29-额外类型链接形式复验.md`,并已完整承载于
-# docs/contract-rationale.md 的 `linkPolicy.evidence.other` 小节。
+# 证据链未丢:`other` 无可点网页形式的实测原始档案已随内核仓文档裁剪删除
+# (历史走 git),结论已完整承载于 docs/contract-rationale.md 的
+# `linkPolicy.evidence.other` 小节。
 
 
 def _s(x):

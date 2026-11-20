@@ -1,7 +1,7 @@
 # ADR-0011:去服务化 —— 检索内核改为库 + 纯 CLI
 
 日期:2026-09-16 | 状态:已采纳 | 关联:ADR-0005(v6 彻底在线)、ADR-0008(合成权移交)、
-docs/research/2026-09-16-服务化与纯CLI架构调研.md、docs/research/2026-09-16-CLI工具发行方式调研.md
+原两份架构/发行调研取证档已随内核仓文档裁剪删除(历史走 git);结论已由本 ADR 承载
 
 ## 背景
 
@@ -50,7 +50,7 @@ src/kd/
 `kd read --chunk` 也已在 CLI 内直连上游(其源码注释亦写着"应收编进检索服务")。
 
 **十个 HTTP 端点(`/search` `/ask` `/health` `/corpus` `/karticle` `/question` `/answer`
-`/article` `/share` `/manifest`)与 `docs/API.md` 一并删除**,只留 CLI。
+`/article` `/share` `/manifest`)与当时的 HTTP API 文档一并删除**,只留 CLI。
 
 ### 2. 不留兼容层
 
@@ -97,8 +97,7 @@ v6 的"三级回退"退化为两级;`kd health` 的 `landing` 字段、`docstore
 
 **若将来重新引入自动循环脚本,或出现多进程并发调用方**,本决策必须重新评估——
 届时 `journal_mode=WAL` 与显式 `busy_timeout` 是**硬前置,不是可选项**。
-详见 `docs/adr/0017-上游频率红线重新读数.md` 与
-`docs/research/2026-09-29-内核自述与实际行为出入复核.md` §3。
+详见 `docs/adr/0017-上游频率红线重新读数.md`;原取证档已删,历史走 git。
 
 ### 6. 命名:保留 `kd`,不改
 

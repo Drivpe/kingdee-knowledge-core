@@ -144,7 +144,7 @@ ADR-0009(原句路)、ADR-0007(引用形态,部分条款本次更正)
 ——`question/` 的最终状态码恰为 200(成功重定向到 404 页),只看状态码会把失效帖误判为可贴
 (六条 `question/` 样本最终字节数**全部为 399522**,即同一张 `/error/404` 页)。
 
-可执行口径已落 `docs/ANSWER-SPEC.md` 第 3 条:引用优先 `knowledge/`,`article/` 可贴,
+可执行口径已落在调用层的回答规范(第 3 条):引用优先 `knowledge/`,`article/` 可贴,
 `question/<questionId>` 不贴链接。**上文"已知偏差"中把 `article` 与 `question` 并列为"URL 不可靠"
 的表述据此收窄**:`question/` 是删除(不可贴),`article/` 实测可访问(可贴)。
 

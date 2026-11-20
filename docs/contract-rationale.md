@@ -142,7 +142,7 @@ read(question) 的 `truncated` 字符串枚举**两值**(ADR-0016 决策 7,v6.6)
 
 ## linkPolicy.falseNegatives
 
-⚠️ **判定可点性必须跟随重定向看最终 URL(`url_effective`),不得只看首跳状态码**:(a) `question/` 的最终状态码恰为 200(成功重定向到 404 页),只看状态码会把失效链接判成可点;(b) `article/` 存在 302 但**迁移成功**的样本,只看状态码会把可点链接判成失效。**两个方向的误判都已实际发生过。** ⚠️ 2026-09-29 又添一例同型:`/school/detail/<id>` 同因被误记为『200 可点』,实为恒死——见 docs/research/2026-09-29-额外类型链接形式复验.md。
+⚠️ **判定可点性必须跟随重定向看最终 URL(`url_effective`),不得只看首跳状态码**:(a) `question/` 的最终状态码恰为 200(成功重定向到 404 页),只看状态码会把失效链接判成可点;(b) `article/` 存在 302 但**迁移成功**的样本,只看状态码会把可点链接判成失效。**两个方向的误判都已实际发生过。** ⚠️ 2026-09-29 又添一例同型:`/school/detail/<id>` 同因被误记为『200 可点』,实为恒死——原始取证档已随内核仓文档裁剪删除(历史走 git);结论见本节与 `linkPolicy.evidence.other`。
 
 ## linkPolicy.loginState
 
@@ -150,7 +150,7 @@ read(question) 的 `truncated` 字符串枚举**两值**(ADR-0016 决策 7,v6.6)
 
 ## linkPolicy.evidenceDoc
 
-docs/research/2026-09-29-问答帖链接形式实测.md(本轮匿名侧,22/10/10 次对照);docs/research/2026-09-28-链接可点性复测.md;docs/research/2026-09-27-链接可点性与productLineId实测.md(部分结论已被推翻,保留作反例档案)
+原始取证档三份(2026-09-29 问答帖链接形式实测 / 2026-09-28 链接可点性复测 / 2026-09-27 链接可点性与productLineId实测)已随内核仓文档裁剪删除,历史走 git。结论保留在本节与 `linkPolicy.forbidden` / `linkPolicy.evidence.question`;被推翻的口径只作反例,不再是活指针。
 
 ## productIds.evidence
 
@@ -190,4 +190,4 @@ docs/research/2026-09-29-问答帖链接形式实测.md(本轮匿名侧,22/10/10
 
 ### linkPolicy.evidence.other
 
-⚠️ **恒 no-link**,2026-09-29 复验:额外类型**没有任何一个网页形式被多轮次确认为活的**——`LearningCourse` 的 /school/detail/<id> 恒死(3 真 id × 2 轮,url_effective 全是 /error/404;旧文档记的『200 可点』踩了『/error/404 页本身返回 200』这个坑),另 8 种候选形式全部死;`LearningPath` 未确认;`KnowledgeSpecial` 的 /knowledge/specialDetail/<id> **依 id 而异**(1 活 3 死,严格交替复验 6 轮排除限流),与『按 kind 一刀切』的政策形状不兼容;`LearningBroadcast` 的 url 指向第三方域 live.vhall.com(该域可点,但本政策全部证据建立在 vip 域上,不能套用)。详见 docs/research/2026-09-29-额外类型链接形式复验.md
+⚠️ **恒 no-link**,2026-09-29 复验:额外类型**没有任何一个网页形式被多轮次确认为活的**——`LearningCourse` 的 /school/detail/<id> 恒死(3 真 id × 2 轮,url_effective 全是 /error/404;旧文档记的『200 可点』踩了『/error/404 页本身返回 200』这个坑),另 8 种候选形式全部死;`LearningPath` 未确认;`KnowledgeSpecial` 的 /knowledge/specialDetail/<id> **依 id 而异**(1 活 3 死,严格交替复验 6 轮排除限流),与『按 kind 一刀切』的政策形状不兼容;`LearningBroadcast` 的 url 指向第三方域 live.vhall.com(该域可点,但本政策全部证据建立在 vip 域上,不能套用)。原始取证档已随内核仓文档裁剪删除(历史走 git);此处即为结论正本。
