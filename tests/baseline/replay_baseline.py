@@ -60,9 +60,34 @@ BASELINE_PATH = os.path.join(HERE, "public-behavior-baseline.json")
 ELAPSED_MASK = "<elapsedMs>"
 
 
+FIXTURE_MISS_EXIT = 97  # 子进程用它回报 FixtureMiss
+
+
+class FixtureMiss(BaseException):
+    """⚠️ **harness 自己的失败,不是内核行为**。
+
+    用它而不用 `AssertionError`:后者会把内核自己的 `assert`也当成 fixture 缺失处理。
+    它经 `run_core` 原样上抛(不进基线),并以**异常传播**而非 stderr 文案告知 `run_cli`——
+    靠文案子串识别会让「改一个措辞就静默失去保护」。
+
+    ⚠️ **必须继承 BaseException,不能是 Exception** —— 内核的 cli._guard 有
+    except Exception 把**任何**异常映射成错误 JSON + 退出码,而 _manifest 的路由级
+    catch 收 BaseException。若 FixtureMiss 是 Exception,它会被内核自己捕获、变成一条看起来
+    正常的 internal_error 记录 —— 于是「fixture 漏登记」又被静默录进基线。
+    继承 BaseException 让它在两条路径上都直接穿透到本 harness。
+    """
+
+
+
 # ------------------------------------------------------------------ fake 上游
 
-def load_fixture(path=FIXTURE_PATH):
+def load_fixture(path=None):
+    """读 fake 上游。⚠️ **默认值必须在这里解析,不能写成形参默认 `path=FIXTURE_PATH`**——
+    形参默认值在 import 期求值一次,而 `--fixture` 是 `main()` 里才写进全局的,
+    于是那个旋钮会变成「解析了却没用」的死机制(实测:传空 {} 仍报全一致)。
+    """
+    if path is None:
+        path = FIXTURE_PATH
     with open(path, encoding="utf-8") as f:
         return json.load(f)
 
@@ -118,8 +143,11 @@ def make_fake(fixture, calls):
         _config._up_inc()
         entry = resolve(fixture, url)
         if entry is None:
-            raise AssertionError("fake 上游未登记该 URL(基线禁止静默兜底): " + url)
-        if "errorCode" in entry:
+            raise FixtureMiss("fake 上游未登记该 URL(基线禁止静默兜底): " + url)
+        # ⚠️ 判定口径必须与真实 `_net._get_json` 逐字相同(真值判定,不是 `in`):
+        # 真实代码写 `if isinstance(d, dict) and d.get("errorCode"):`,
+        # 故 `errorCode: 0` 在生产上**不抛**(假值)。用 `in` 会让 harness 在这一档与生产分歧。
+        if entry.get("errorCode"):
             raise UpstreamError(int(entry["errorCode"]),
                                 str(entry.get("message") or "")[:200])
         if "__raise__" in entry:
@@ -128,7 +156,7 @@ def make_fake(fixture, calls):
                 raise urllib.error.URLError(entry.get("message"))
             if kind == "IncompleteRead":
                 raise http.client.IncompleteRead(b"")
-            raise AssertionError("未知的 __raise__ 取值: " + repr(kind))
+            raise FixtureMiss("未知的 __raise__ 取值: " + repr(kind))
         if "__raw__" in entry:
             return json.loads(entry["__raw__"])
         return entry
@@ -305,7 +333,7 @@ def run_core(op, kwargs):
         try:
             result = core.search(**kwargs) if op == "search" else core.read(**kwargs)
             result = normalize(result)
-        except AssertionError:
+        except FixtureMiss:
             # ⚠️ **本 harness 自己的守卫,不是内核行为** —— 必须原样上抛,
             # 绝不能像普通异常那样被录进基线。理由:一旦录进去,--record 就会把
             # "fixture 漏登记" 冻结成 "期望输出",之后每次重放都"通过" ——
@@ -346,7 +374,8 @@ def run_cli_main(argv):
         path = os.environ.get("KD_BASELINE_CALLS")
         if path:
             with open(path, "w", encoding="utf-8") as f:
-                json.dump(sorted(set(calls)), f, ensure_ascii=False)
+                # 与 run_core 同口径:排序但**不去重**(每路一次请求是冻结面)。
+                json.dump(sorted(calls), f, ensure_ascii=False)
 
 
 def run_cli(argv, calls_path):
@@ -355,16 +384,19 @@ def run_cli(argv, calls_path):
     env["KD_BASELINE_CALLS"] = calls_path
     bootstrap = (
         "import sys; sys.path[:0] = [" + repr(SRC) + ", " + repr(HERE) + "];"
-        "import replay_baseline as rb; sys.exit(rb.run_cli_main(sys.argv[1:]))"
+        "import replay_baseline as rb;"
+        "\ntry:\n    sys.exit(rb.run_cli_main(sys.argv[1:]))"
+        "\nexcept rb.FixtureMiss as e:\n    sys.stderr.write(str(e)); sys.exit(rb.FIXTURE_MISS_EXIT)"
     )
     proc = subprocess.run([sys.executable, "-c", bootstrap] + argv,
                           capture_output=True, text=True, env=env, cwd=REPO)
     with open(calls_path, encoding="utf-8") as f:
         calls = json.load(f)
-    if "fake 上游未登记该 URL" in proc.stderr or "未知的 __raise__ 取值" in proc.stderr:
-        # 同 run_core:这是 harness 守卫触发,不是内核行为,不得录进基线。
-        raise AssertionError("CLI 场景触发了 fake 上游守卫(基线禁止静默兜底): "
-                             + proc.stderr.strip()[:400])
+    if proc.returncode == FIXTURE_MISS_EXIT:
+        # 子进程用**专用退出码**回报 FixtureMiss —— 不靠 stderr 文案子串识别
+        # (后者会因一句措辞改动而静默失效,属「改一处不红」那一类)。
+        raise FixtureMiss("CLI 场景触发了 fake 上游守卫(基线禁止静默兜底): "
+                             + proc.stderr.strip()[-600:])
     stdout = proc.stdout
     try:
         stdout = normalize(json.loads(stdout)) if stdout.strip() else ""
