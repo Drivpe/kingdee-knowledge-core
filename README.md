@@ -6,7 +6,9 @@
 kd 是一个可 import 的金蝶云社区**检索内核**,附带一个薄 CLI。
 它零账号、零 cookie、零模型依赖:检索和全文读取全走匿名上游。
 内核**只出清单、不合成回答**:`search` 给出标题清单,调用方自己挑,`read` 取全文。
-回答格式、拆词规范等调用层约定属于 agent 集成仓,不在本仓。
+回答格式、拆词规范及技能四件套(SKILL.md / ANSWER-SPEC.md / WORD-SPLITTING.md /
+CITATION-EVIDENCE.md)与插件清单(plugin.json / marketplace.json)等调用层资产已迁出到 agent
+集成仓,不在本仓;本仓只保留检索内核与公开 search/read 契约。
 
 ## 安装
 
