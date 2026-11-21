@@ -45,7 +45,7 @@ def _norm_product_id(product_id):
     `effectiveProductId` **不再出现 `null`**,调用方与回显逐字可比对。
 
     ⚠️ 这是一条**破坏性变更**:旧调用方若用 `product_id=None` 表达"不过滤",
-    改传 `0` 即可(语义完全一致,见 `_stamp_product`)。
+    改传 `0` 即可(语义完全一致,见 `_manifest._plan_routes`)。
     """
     if product_id is None:
         # ⚠️ **跟随声明,而不是取导入期快照**(2026-09-29,工单 #33)。
@@ -149,7 +149,7 @@ def search(keywords=None, product_id=_DEFAULT_PRODUCT_ID,
     # 1 路",实际是"你给的 3 个词里有 2 个是空的,内核替你扔了"。规格 §A4 的口径是
     # 「违规的不是说不,是**不说**」,故丢弃一律通报(下面把 blankDropped 交给编排层)。
     blanks = [k for k in keywords if not str(k).strip()]
-    # 全是空白 = 没有词:`[""]` / `["  ", ""]` 在 `_plan_routes` 里会被逐个 strip 后跳过,
+    # 全是空白 = 没有词:`[""]` / `["  ", ""]` 在 `_manifest._plan_routes` 里会被逐个 strip 后跳过,
     # 产出一条 **0 路的空清单**——结构合法、`ok:true`、`results:[]`,调用方只会以为
     # "官方没这类文档"。这正是本项目最忌的静默失效(与"空 text"同类),故与
     # `not keywords` 同处理:显式报错,让调用方知道是**它没给词**,而不是官方没有资料。
@@ -173,9 +173,8 @@ def search(keywords=None, product_id=_DEFAULT_PRODUCT_ID,
         "| otherSkipped", res.get("otherSkipped"),
         "| returned", len(res.get("results") or []),
         "| upstream", stats["upstreamCalls"])
-    # ⚠️ `stats` 注入之后**再过一次声明投影**(ADR-0016 决策 8):`stats` 也是
-    # `topKeys` 里的顶层键,若只在 `_search_manifest` 里投影,它就绕过了声明——
-    # 从声明删 `stats` 而真实输出仍带着它,等于声明对这一个键没有约束力。
+    # ⚠️ **唯一投影点**(票 06):`stats` 注入之后在这里投影一次。
+    # `stats` 也是 `topKeys` 里的顶层键,投影必须在注入之后,否则它会绕过声明闸门。
     return project_top(res)
 
 
@@ -213,15 +212,9 @@ def read(kind, oid, rate=None):
     # (那正是投影的目的),写 `d["contentText"]` 会把"删声明即删输出"变成一条崩溃路径
     # ——与 search 侧日志行读 `stats` 的那次踩坑同型。
     log("READ[%s]:" % kind, oid, "| len", len(d.get("contentText") or ""))
-    # ⚠️ `stats` 注入之后**再过一次声明投影**(2026-10-01,D12):`stats` 也是
-    # `read.topKeys` 里的键,而 `_detail` 的投影发生在注入**之前** —— 若只投影那一次,
-    # 从声明删 `stats` 而真实输出仍带着它,声明对这一个键就没有约束力。
-    # 与 `_public.search` 的两段式同构(那里是 `_search_manifest` 返回前一次 +
-    # 本函数注入 `stats` 之后一次)。
-    # ⚠️ 走 `_detail_mod.project_read` 的**属性访问**、而不是 import 期的名字快照:
-    # 快照拦不住"替换模块属性"的注入(本仓已踩过:`from ._net import _get_json` 那次,
-    # 见 `_detail.py` 顶部论证),而投影正是必须可注入的那一件 —— 回归用例要靠替换它
-    # 证明"声明即闸门",不是在测一句断言。
+    # ⚠️ **唯一投影点**(票 06):`stats` 注入之后在这里投影一次。
+    # `stats` 也是 `read.topKeys` 里的键,投影必须在注入之后,否则它会绕过声明闸门。
+    # 走 `_detail_mod.project_read` 的**属性访问**而非 import 期名字快照,保持可注入性。
     return _detail_mod.project_read(d, kind)
 
 

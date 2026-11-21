@@ -89,15 +89,15 @@ kd search 清单返回体的键集。results[] 是**帖子级**条目(ADR-0014):
 
 ## read.note
 
-kd read 全文返回体的键集(2026-10-01 新增,D12)。此前 read 侧的键集**只活在代码字面量里** —— `_knowledge_article` / `_question_detail` / `_article_detail` 各自手写 dict,回归用例里又手抄了第二份(`READ_KEYS`/`READ_QUESTION_*`),于是『read 返回什么字段』没有任何单一来源,改了不会有任何信号。本段就是那份单一来源:代码读它拼返回体(`_detail.project_read` 按 kind 投影),用例从它派生断言。⚠️ 本段**不改对外行为** —— 它把三档的**真实产出键集**逐一登记在案(等价重构),不是新增或删除字段;唯一的运行期效果是『声明里删一个键 → 真实输出跟着少一个』(有回归钉子)。⚠️ 与 `search` 段的形状差异是**结构差异**,不是疏漏:read 只有**一层**返回体(没有『顶层 + 条目』两层),故 `topKeys` = 三档恒在的公共键、`keysByType` = 该档专属的恒在键、`conditionalByType` = 有才留的条件键。⚠️ `keysByType` 里**没有 `other` 档** —— 它是合法 kind 但内核没有全文端点(`_detail` 抛 `unsupported_kind`),故 read 的键集里不存在这一档。
+kd read 全文返回体的键集(2026-10-01 新增,D12)。此前 read 侧的键集**只活在代码字面量里** —— `_knowledge_article` / `_question_detail` / `_article_detail` 各自手写 dict,回归用例里又手抄了第二份(`READ_KEYS`/`READ_QUESTION_*`),于是『read 返回什么字段』没有任何单一来源,改了不会有任何信号。本段就是那份单一来源:代码读它拼返回体(`_public.read` 注入 stats 后经 `_detail.project_read` 按 kind 投影一次),用例从它派生断言。⚠️ 本段**不改对外行为** —— 它把三档的**真实产出键集**逐一登记在案(等价重构),不是新增或删除字段;唯一的运行期效果是『声明里删一个键 → 真实输出跟着少一个』(有回归钉子)。⚠️ 与 `search` 段的形状差异是**结构差异**,不是疏漏:read 只有**一层**返回体(没有『顶层 + 条目』两层),故 `topKeys` = 三档恒在的公共键、`keysByType` = 该档专属的恒在键、`conditionalByType` = 有才留的条件键。⚠️ `keysByType` 里**没有 `other` 档** —— 它是合法 kind 但内核没有全文端点(`_detail` 抛 `unsupported_kind`),故 read 的键集里不存在这一档。
 
 ## read.note_conditional
 
-条件键(2026-10-01):`bestAnswer` 只在上游给了采纳答案时出现;`answers` 只在 `with_answers` 分支(生产 `read` 恒走该分支)出现;`truncated` 只在发生截断时出现。⚠️ 它们**不是被填成 `null` 的占位** —— 『结构性不适用』与『这次没取到』是两件事,与 `search` 段同口径;`answersTaken`/`answersTotal` 则**恒在**(它们与 `answers` 同批构造,声明里归 `keysByType`)。
+条件键(2026-10-01,票 06 更新):`bestAnswer` 只在上游给了采纳答案时出现;`answers` 由问答深读恒展开(上游无回答时可能缺);`truncated` 只在发生截断时出现。⚠️ 它们**不是被填成 `null` 的占位** —— 『结构性不适用』与『这次没取到』是两件事,与 `search` 段同口径;`answersTaken`/`answersTotal` 则**恒在**(它们与 `answers` 同批构造,声明里归 `keysByType`)。
 
 ## read.note_statsInjection
 
-⚠️ `stats` 的**注入时机**决定了投影必须调用两次(2026-10-01):`_public.read` 在 `_detail` 返回**之后**才注入 `stats`,故 `_detail` 里那一次投影看不到它 —— 必须在 `_public.read` 注入之后再投影一次。否则从声明删 `stats` 时真实输出仍带着它,声明对这一个键就没有约束力。与 `search` 侧 `project_top` 被调用两次(`_search_manifest` 返回前一次、`_public.search` 注入 `stats` 之后一次)同构。
+⚠️ `stats` 的**注入时机**决定了投影必须在注入**之后**发生(票 06 改为一次):`_public.read` 在 `_detail` 返回后才注入 `stats`,故投影点是 `_public.read` 注入之后的那一处。否则从声明删 `stats` 时真实输出仍带着它,声明对这一个键就没有约束力。此前 `_detail` 里还有一次前置投影(同一字段投两遍),已于票 06 删除;`search` 侧的 `project_top` 同样只在 `_public.search` 注入 `stats` 之后调用一次。
 
 ## read.note_keyOrder
 
@@ -109,7 +109,7 @@ read(question) 的 `truncated` 字符串枚举**两值**(ADR-0016 决策 7,v6.6)
 
 ## read.note_consumer
 
-⚠️ 本段**必须有生产消费者**(本仓硬纪律:「声明必须有消费者,否则『单一来源』是假的」——新增声明段没有真消费者就是本仓点名批评过的病)。两个消费者:① `_detail.project_read` 按 `read_keys(kind)` 投影三档返回体(声明里没列的键一律不出现在最终返回体 —— 这就是『删声明即删输出』的机制);② `_question_detail` 的 `truncated` 两个枚举值经 `_config.read_truncated_values()` 取,代码里不再出现 `"answer_limit"` / `"upstream_error"` 字面量。读取失败一律回落 `_config` 的内置兜底集(`_FALLBACK_READ_*`),不抛错。
+⚠️ 本段**必须有生产消费者**(本仓硬纪律:「声明必须有消费者,否则『单一来源』是假的」——新增声明段没有真消费者就是本仓点名批评过的病)。两个消费者:① `_public.read` 注入 stats 后经 `_detail.project_read` 按 `read_keys(kind)` 投影三档返回体(声明里没列的键一律不出现在最终返回体 —— 这就是『删声明即删输出』的机制);② `_question_detail` 的 `truncated` 两个枚举值经 `_config.read_truncated_values()` 取,代码里不再出现 `"answer_limit"` / `"upstream_error"` 字面量。读取失败一律回落 `_config` 的内置兜底集(`_FALLBACK_READ_*`),不抛错。
 
 ## limits.note
 

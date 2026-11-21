@@ -15,6 +15,7 @@
 零消费者的死代码。清单不再做类型过滤——调用方从清单条目的 `type` 字段自己筛
 (ADR-0016 决策 3 的明示取舍)。
 """
+import unicodedata
 import urllib.parse
 
 from . import _net
@@ -53,15 +54,12 @@ from ._text import _is_true, _title_of, html2text
 def _norm_item(x, et):
     """上游原始条目 → 本套件条目。`et` 是上游的 `entity-type`。
 
-    ⚠️ **`et` 的契约(2026-09-29 收紧)**:调用方(`_manifest._norm`)须先做
-    **宽容归一**(NFKC 折叠 + strip + lower)。本函数内部仍按小写字面量比较 ——
-    这是刻意的(映射表就是一份小写字面量表),但**不再假设"调用方一定会做"**:
-    拿不到已知值时返回 None,而"丢了什么"由 `_norm` 的调用链负责可见性
-    (见 `_manifest._norm` 的宽容层与 `other` 档)。
-
-    历史教训(工单 #31):原契约写着「`et` **已小写**」而**函数内零防御** ——
-    把调用方的 `.lower()` 去掉会退化为全量静默丢弃,而离线用例如测不出来
-    (直调本函数的用例自己传小写,绕过了归一那一层)。
+    ⚠️ **`et` 的归一在本函数内完成**(票 06):NFKC 折叠 + strip + lower 收进
+    adapter,任何调用方都绕不过去。此前归一放在 `_manifest._norm` 那层薄封装里,
+    `_norm_item` 自己按小写字面量比较 —— 少一层调用就全量静默丢弃,而那个前提
+    没有任何机制保证。映射表只有一份小写字面量,归一也只能在映射发生的地方做。
+    `other` 档的 `upstreamType` 仍保留**原始** entity-type(如实反映上游形状),
+    归一后的值只用于分支比较。
 
     ⚠️ **帖子号即 `id`**(决策 D6,2026-09-27):问答条目的 `id` 就是**帖子号**
     (上游的 `questionId`),不是回答 id。理由与后果:
@@ -78,6 +76,10 @@ def _norm_item(x, et):
     (实测同一响应内 0/2/3),而原实现只在 answer 分支取它——knowledge/article 的
     该键被**归一化白丢**(上游给了、我们扔了,无任何信号)。三处分支现在都取。
     """
+    raw_et = et
+    if not isinstance(et, str):
+        et = str(et)
+    et = unicodedata.normalize("NFKC", et).strip().lower()
     hl = x.get("highlight") or {}
     classes = [c.get("name") for c in (x.get("classifies") or []) if c.get("name")]
     if et == "knowledge":

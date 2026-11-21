@@ -249,8 +249,9 @@ _FALLBACK_READ_BY_TYPE_KEYS = {
                  "answersTaken", "answersTotal"),
     "article": ("supports", "views"),
 }
-# **条件键**:有才留(`bestAnswer` 依赖上游给了采纳答案、`truncated` 依赖发生截断、
-# `answers` 依赖 `with_answers` 分支)。它们与"恒在键"同属投影白名单,只是**不保证出现**。
+# **条件键**:有才留(`bestAnswer` 依赖上游给了采纳答案、`truncated` 依赖发生截断;
+# `answers` 恒由问答深读展开产生,但上游无回答时也可能缺)。它们与"恒在键"同属
+# 投影白名单,只是**不保证出现**。
 _FALLBACK_READ_CONDITIONAL_BY_TYPE = {"question": ("bestAnswer", "truncated", "answers")}
 # `truncated` 的两值枚举(声明是 contract.json 的 `read.truncatedValues`;
 # 为什么必须是两个值、压成一个会怎样,见 docs/contract-rationale.md 的

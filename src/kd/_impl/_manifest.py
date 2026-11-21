@@ -27,22 +27,56 @@
   * 顶层 `text` 键 —— 位置参数删除后,"整句"不再有特殊地位,回显只留 `keywords[]`。
 """
 import sys
-import unicodedata
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from . import _net, _upstream
 from ._config import (apply_link_policy, contract_loaded, log, max_keywords,
                       result_keys, top_keys)
 from ._errors import UpstreamError, _raise_min
+from ._links import compose_url
+from ._net import clamp_query
 # ⚠️ 链接构造走 `_links.compose_url`(唯一归属地,2026-10-01 K1)——原先是
 # `from ._upstream import _question_url`,即"回答号怎么选"在清单侧另推导一遍。
-from ._links import compose_url
-from ._routes import _dedupe_routes, _plan_routes
 
 # 每路上游固定取 10 条。清单是"每路 10 条去重归并"的产物,总长最坏只有 路数×10。
 # ⚠️ 原 `_MAX_SCAN_PAGES`(跨页扫描上限)已随 `type_` 过滤一并删除:它是"为 type_
 # 补齐服务的"旋钮,删除后该循环永不执行(决策 5)。
 _PER_ROUTE_WANT = 10
+
+
+def _plan_routes(keywords, product_id):
+    """调用方给的词 → route 列表:**逐字、逐序**,不删改、不重排、不补充。
+
+    唯一清洗是首尾 strip 与跳空串(空白不是词的一部分)。去重在 `_dedupe_routes`;
+    内核不生成检索词(ADR-0016 决策 1),路序即调用方给词顺序。产品线直通。
+    """
+    routes = []
+    for k in (keywords or []):
+        term = str(k).strip()
+        if not term:
+            continue
+        routes.append({"kind": "explicit", "terms": clamp_query(term)})
+    if product_id and int(product_id) != 0:
+        # 显式 0/None = 不过滤:**完全不写** productIds(上游把 0 当真值过滤)。
+        for r in routes:
+            r["productIds"] = int(product_id)
+    return routes
+
+
+def _dedupe_routes(route_list):
+    """丢弃检索词完全相同的重复路:同一 query 不发两次请求。
+
+    去重与截断是两件事:丢词由 `keywordsDropped` 通报,重复词不再通报
+    (用户裁定「重复的就不要提示了」)。
+    """
+    out, seen = [], set()
+    for r in route_list:
+        t = str(r.get("terms") or "")
+        if t in seen:
+            continue
+        seen.add(t)
+        out.append(r)
+    return out
 
 
 def _route_search_once(text, product_id, rate, global_=False, sorts_type=1,
@@ -76,37 +110,10 @@ def _route_search_once(text, product_id, rate, global_=False, sorts_type=1,
     dd = _upstream._search_upstream(text, product_id, 1, page_size, global_,
                                     sorts_type, rate)
     for x in dd.get("content") or []:
-        n = _norm(x)
+        n = _upstream._norm_item(x, x.get("entity-type") or "")
         if n:
             items.append(n)
     return items
-
-
-def _norm(x):
-    """上游条目 → 本套件条目(经 `_upstream._norm_item`,`entity-type` 决定分支)。
-
-    保留这一层薄封装是因为 `_norm_item` 需要上游 `entity-type` 作为分派键,而
-    `_route_search_once` 只关心"这条能不能归一化"。映射点本身仍在 `_upstream` 一处。
-
-    ⚠️ **宽容层**(2026-09-29,工单 #31):`.strip()` + `.lower()` + **NFKC 折叠**。
-    实测上游确实会给出带空白/尾换行/全角的 `entity-type`,而 `_norm_item` 内部
-    **零归一**、直接字面量比较 —— 于是这些变体被**整条静默丢弃**
-    (`_norm` 返回 None,调用方只看到"结果变少了",没有任何信号)。
-
-    这一步不是洁癖,而是**唯一的防线**:`_norm_item` 的形参契约写着「`et` 已小写」,
-    **完全依赖唯一调用方遵守、函数内部无任何防御** —— 把这里的 `.lower()` 去掉,
-    `_norm_item` 会退化为大小写敏感、全量静默丢弃。而 48 条离线用例**测不出来**
-    (直调 `_norm_item` 的用例自己传小写,绕过了这一层)。
-
-    ⚠️ NFKC 折叠治全角(`'Ｋｎｏｗｌｅｄｇｅ'` → `'knowledge'`);`.strip()` 治前后空白
-    与尾换行(**含 NBSP** —— `str.strip()` 默认就把 `\\xa0` 当空白,无需额外处理)。
-    """
-    et = (x.get("entity-type") or "")
-    if not isinstance(et, str):
-        et = str(et)
-    # NFKC 会把全角字母折成半角;strip() 去掉首尾空白(含 \n、\xa0);lower() 统一大小写。
-    et = unicodedata.normalize("NFKC", et).strip().lower()
-    return _upstream._norm_item(x, et)
 
 
 def _manifest_key(n):
@@ -220,10 +227,9 @@ def _manifest_fuse(route_lists):
     """多路结果 → 去重后的清单条目(带 hitRoutes / routes)。
 
     route_lists 是 [(路序号, [规范化条目, …]), …],顺序即路的执行顺序。
-    返回 (keys, route_hits, first_seen, by_key):
+    返回 (keys, route_hits, by_key):
       keys       按 (首次路序号, 路内名次) 排列的清单键
       route_hits {去重键: {路序号,…}} —— 纯信息,不参与排序
-      first_seen {去重键: (首次路序号, 路内名次)} —— 排序载体
       by_key     {去重键: 帖级条目} —— 同帖多条目已由 `_manifest_merge` 合并
 
     ⚠️ 合并(`_manifest_merge`)在这里发生,**排序键不受其影响**:排序仍只看
@@ -231,7 +237,7 @@ def _manifest_fuse(route_lists):
     合并只改变条目的**字段内容**(帖级聚合),不改变任何顺序——零算法排序是硬契约
     (ADR-0013),把清单粒度从回答级改成帖子级(ADR-0014)**不得**顺带引入排序分。
     """
-    route_hits, first_seen, order, groups = {}, {}, [], {}
+    route_hits, order, groups = {}, [], {}
     for route_no, items in route_lists:
         for pos, n in enumerate(items, 1):
             if not n:
@@ -239,30 +245,20 @@ def _manifest_fuse(route_lists):
             k = _manifest_key(n)
             if k not in route_hits:
                 route_hits[k] = set()
-                first_seen[k] = (route_no, pos)
                 order.append(k)
                 groups[k] = []
             route_hits[k].add(route_no)
             groups[k].append(n)
-    # ⚠️ **直接保序,不排序**(2026-09-29,工单 #33,用户裁定)。
+    # ⚠️ **直接保序,不排序**:内核不产生排序分(ADR-0013),路序来自调用方给词顺序。
     #
-    # 原先这里写 `sorted(order, key=_manifest_rank(first_seen))`,而 `_manifest_rank`
-    # 实测是**恒等函数**:200 组随机构造下 `sorted(order, key=rank) == order` 恒成立,
-    # 500 次试验 `first_seen` 取值恒不相交(单射,无 tie-break)。
-    # 即"排完等于没排"——用户裁定删掉 `sorted` 与 `rank`,把伪装去掉。
-    #
-    # ⚠️ **真正的顺序契约不在那段被删的代码里,而在下面这个隐式不变量上**:
-    #     `order.append(k)` 与 `first_seen[k] = (route_no, pos)` 是**同处写入**的
-    #     —— 两者只在 `k not in route_hits` 的分支里各发生一次,故
-    #     `order` 的元素次序**逐字等于** `first_seen` 的(路序, 名次)次序。
-    #     这就是"清单顺序 = 调用方给词的顺序, 该路内上游名次"的载体。
-    # 删 `rank` 时若把这段一并删掉(只留 `keys = list(order)` 而不留说明),
-    # 下一个人会以为"顺序不重要" —— 而它是 ADR-0016 决策 2 的硬契约。
-    # 另:`_manifest_fuse` 仍返回 `first_seen`(`_search_manifest` 不用它,
-    # 但它是上面这条不变量的**可观测形式**,测试与排查都靠它)。
+    # 顺序契约就在 `order` 的构造上:它只在 `k not in route_hits` 的首次命中分支里
+    # append 一次,而 route_lists 已按 (路序号, 路内名次) 遍历 —— 故 `order` 的次序
+    # 逐字等于"首次路序 + 路内名次"。这就是"清单顺序 = 调用方给词的顺序,
+    # 该路内上游名次"的载体(ADR-0016 决策 2 的硬契约)。
+    # 保序由公开结果本身 + fake 上游用例验证,不再靠任何影子载体。
     keys = list(order)
     by_key = {k: _manifest_merge(groups[k]) for k in keys}
-    return keys, route_hits, first_seen, by_key
+    return keys, route_hits, by_key
 
 
 def _manifest_project(n, route_nos):
@@ -343,7 +339,7 @@ def _search_manifest(keywords=None, product_id=None, blank_dropped=0, global_=Fa
     """
     # ---- 收词与上限:超出按顺序取前 N,并**写明丢了几条**(ADR-0016 决策 4) ----
     limit = max_keywords()
-    route_list, product_id = _plan_routes(keywords=keywords, product_id=product_id)
+    route_list = _plan_routes(keywords=keywords, product_id=product_id)
     # `routesPlanned` 的口径(沿用 spec 第 3 节冻结的语义):**去重前、受上限截断后**
     # 的计划路数。不要改成去重后的实际路数——那不是这个字段的语义。
     planned = min(len(route_list), limit)
@@ -363,7 +359,7 @@ def _search_manifest(keywords=None, product_id=None, blank_dropped=0, global_=Fa
     # 留一个恒 false 的键是"死机制",与本仓"不留占位、不承诺不存在的能力"冲突,
     # 故整套删除(顶层键 + scanNote 句 + CLI stderr 句),不是置 false。
     #
-    # ⚠️ **去重本身保留**(`_dedupe_routes`):不得对同一 query 发两次上游请求。
+    # ⚠️ **去重本身保留**:不得对同一 query 发两次上游请求。
 
     # ---- 路由并发(ADR-0017 决策 4 阶段一):串行 for → 并发池 ----
     #
@@ -402,7 +398,7 @@ def _search_manifest(keywords=None, product_id=None, blank_dropped=0, global_=Fa
                 # ADR-0009 废止消失,`_route_sorts_type` 的 `or` 链风险一并消失)。
                 # ⚠️ 这里必须取 `r["productIds"]`(经 `.get()` 容忍缺键),**不能**直接传
                 # `product_id`(v6.6 审查复核):规格 A7 曾把本行判为"死分支、可删",但实测
-                # 它**不是死的** —— `_stamp_product` 对"不过滤"(`0`/`None`)**刻意不写**
+                # 它**不是死的** —— `_plan_routes` 对"不过滤"(`0`/`None`)**刻意不写**
                 # `productIds` 键,于是 `r.get(...)` 得到 `None`(省略上游参数 = 真不过滤);
                 # 若改成传 `product_id`,显式 `0` 会原样送给上游,而上游把
                 # `productIds[0]=0` **当真值过滤**(会把 Knowledge 挤出前排)。
@@ -511,7 +507,7 @@ def _search_manifest(keywords=None, product_id=None, blank_dropped=0, global_=Fa
     # 故 `results` 的值也从 `(items, total)` 元组收成 `items` 本身。
 
     # 去重归并:同帖多条回答在此合并为一条(ADR-0014),排序键不受影响。
-    keys, route_hits, _first, by_key = _manifest_fuse(route_lists)
+    keys, route_hits, by_key = _manifest_fuse(route_lists)
     # ---- `other` 档的**默认隐藏 + 通报跳过数**(2026-09-29,工单 #32)----
     # ⚠️ 隐藏是**默认**行为(用户裁定:这些类型质量低,得与前三档区分开),
     # 但**隐藏必须可见** —— 否则就是用一处静默换另一处静默:
@@ -572,19 +568,16 @@ def _search_manifest(keywords=None, product_id=None, blank_dropped=0, global_=Fa
         # "全部不给链接" → 所有 url 是 null,调用方必须能分辨"没链接"与"没读到声明"。
         "contractCfgLoaded": contract_loaded(),
     }
-    # ⚠️ 调 `project_top` 而**不是**再抄一遍推导式:那是本函数自己刚立的单一实现点,
-    # 抄一份就等于"同一个事实有两份",改一处漏一处即刻静默漂移。
-    return project_top(payload)
+    # ⚠️ 票 06:完整 payload 原样上送,只在公开 seam(`_public.search` 注入 stats
+    # 之后)投影一次。投影前移到这里会让 stats 绕过声明闸门,且同一字段投影两遍。
+    return payload
 
 
 def project_top(payload):
-    """按 `topKeys` 声明投影顶层字段(声明的**消费者**)。
+    """按 `topKeys` 声明投影顶层字段(声明的**唯一消费者**,票 06)。
 
-    单独抽出来是因为**两个地方**都要用它:
-      * `_search_manifest` 返回前(它产出的那批键);
-      * `_public.search` 注入 `stats` 之后——`stats` 也是声明里的顶层键,
-        若只在前一处投影,它就绕过声明(从声明删 `stats`,真实输出仍带着它)。
-
+    调用点只有一处:`_public.search` 注入 `stats` 之后。此前 `_search_manifest`
+    返回前也投影一次,那是同一字段投两遍,且让 stats 绕过闸门。
     声明里没有的键**一律不出现在最终返回体**——这就是"删声明即删输出"的机制。
     """
     return {k: payload[k] for k in top_keys() if k in payload}

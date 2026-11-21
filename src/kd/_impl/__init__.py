@@ -39,8 +39,6 @@
   _links     条目对外链接的**唯一归属地**:模板(_URL_OF)、必需段规则、回答号选取
              (_pick_answer_id,零算法契约)、政策闸门(link_for_item 收口)、
              数据形状层(compose_url,不含闸门)。改链接规则只改这里
-  _routes    调用方给的词 → 检索路(_plan_routes)、路去重(_dedupe_routes)
-             ⚠️ 拆词器已于 v6.6 整体删除(ADR-0016):本模块**不生成任何检索词**
   _manifest  多路清单执行链(唯一检索路径)、帖级归并(_manifest_merge)、声明投影
   _detail    按 kind 读全文
   _public    公开面函数 search / read
@@ -110,7 +108,6 @@ from ._links import (  # noqa: F401
     compose_url,
     link_for_item,
 )
-from ._routes import _dedupe_routes, _plan_routes, _stamp_product  # noqa: F401
 from ._manifest import (  # noqa: F401
     _PER_ROUTE_WANT,
     _manifest_fuse,
