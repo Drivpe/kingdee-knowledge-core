@@ -24,8 +24,8 @@ classifiers = [
 dependencies = []
 
 [project.urls]
-Homepage = "https://github.com/Drivpe/kingdee-knowledge-kit"
-Repository = "https://github.com/Drivpe/kingdee-knowledge-kit"
+Homepage = "https://github.com/Drivpe/kingdee-knowledge-core"
+Repository = "https://github.com/Drivpe/kingdee-knowledge-core"
 
 [project.scripts]
 kd = "kd.cli:main"
