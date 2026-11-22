@@ -8,10 +8,9 @@
 
 **装配层的职责**(票 07 收口后只剩一件):向 `kd.core` 提供 5 个公开名
 (2 函数 + 3 异常)。原"把全部内部件汇集到本包命名空间、供 `core._impl()` 观测"
-的机制已废止(ADR-0013 增补记):内部件的消费者现在各取所需模块——
-CLI 帮助文案读 `kd._impl._config` / `kd._impl._manifest`,冻结基线读
-`kd._impl._config`,测试 fake adapter 读 `kd._impl._net`。故本文件
-**不再再导出任何内部名**,私有实现的改名与文件布局不再构成外部契约。
+的机制已废止(ADR-0013 增补记):CLI 只读公开包版本与随包声明;
+冻结基线与测试 fake adapter 仅经 `kd._impl._net` 这一已确认 seam 取配置和替换网络。
+故本文件**不再再导出任何内部名**,私有实现的改名与文件布局不再构成外部契约。
 
 子模块地图:
   _errors    三个对外异常类(类对象身份被 kd.core 复用)
@@ -26,6 +25,6 @@ CLI 帮助文案读 `kd._impl._config` / `kd._impl._manifest`,冻结基线读
   _public    公开面函数 search / read
 """
 # ---- kd.core 装配所需的 5 个公开名(唯独这几个会被 kd.core 取走) ----
-from ._config import VERSION  # noqa: F401  版本单一真源(kd.__version__ / cli)
+from ._config import VERSION  # noqa: F401  版本单一真源(kd.__version__)
 from ._errors import InternalError, QueryTooLong, UpstreamError  # noqa: F401
 from ._public import read, search  # noqa: F401

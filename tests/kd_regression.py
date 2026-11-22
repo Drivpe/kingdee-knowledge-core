@@ -380,6 +380,19 @@ def t_private_rename_invisible():
     r = search_with([item("answer", "42", qid="42", adopted=True)],
                     keywords=["甲"], product_id=PROBE_PRODUCT)["results"][0]
     ok(r.get("url"), "公开 search 的链接应仍按既有口径生成: %r" % r.get("url"))
+    # CLI adapter 只能读公开包版本与随包 contract.json，不得直接 import 私有实现。
+    # 这是文件布局/函数改名自由的结构判据，而不是只重复跑一遍当前实现。
+    import ast
+    import inspect
+    tree = ast.parse(inspect.getsource(_kd_cli))
+    private_imports = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom) and (node.module or "").startswith(("_impl", "kd._impl")):
+            private_imports.append(node.module)
+        elif isinstance(node, ast.Import):
+            private_imports.extend(alias.name for alias in node.names
+                                   if alias.name.startswith("kd._impl"))
+    ok(not private_imports, "CLI 直接依赖私有实现模块: %r" % private_imports)
     code = cli("--version")[0]
     ok(code == 0, "CLI --version 应仍 exit 0")
     help_text = out_text("search", "--help")
@@ -708,16 +721,18 @@ def t_bug_propagates_not_upstream():
             pass
         else:
             raise Fail("程序缺陷被吞成 ok/routeErrors（应响亮穿透）")
-    # CLI 侧经真实进程边界：exit 1 + internal_error
+    # CLI 侧也走唯一 fake adapter：search 的路级上游错误按公开契约降级进 routeErrors，
+    # 进程仍 exit 0；不得为了“随便跑一次”而放真实网络，也不得接受模糊断言。
     payload = {"/api/search": {"errorCode": 409, "message": "fake"}}
-    # 注意：CLI 只覆盖 search/read 的进程级输出，这一条验证错误 JSON 不是崩溃文本
-    code, d, err = cli("search", "--kw", QUERY)
-    ok(code in (0, 1), "CLI search 退出码应为 0/1，实为 %r" % code)
+    code, d, stdout, err = cli_offline("search", "--kw", QUERY, payload=payload)
+    ok(code == 0, "CLI search 路级上游错误应按既有契约 exit 0，实为 %r" % code)
+    ok(d is not None and d.get("routeErrors", [{}])[0].get("error") == "upstream_error",
+       "CLI 上游错误应输出 routeErrors/upstream_error 分类 JSON：%r" % d)
 
 
 # ================================ 第二组：read（全文） ================================
 
-@case("read: 三档字段集与冻结基线逐键一致，stats 在二次投影后仍在")
+@case("read: 三档字段集与冻结基线逐键一致，stats 在单次投影后仍在")
 def t_read_fields_frozen():
     cases = [
         ("knowledge", "K1", make_router(knowledge=knowledge_body())),
@@ -727,13 +742,13 @@ def t_read_fields_frozen():
     for kind, oid, router in cases:
         out = read_with(kind, oid, router)
         want = set(FROZEN_READ_TOP_KEYS) | set(FROZEN_READ_BY_TYPE.get(kind, ()))
-        # 条件键：bestAnswer 有采纳才有；truncated/answers 在 question 恒有（生产走 with_answers）
+        # 条件键：bestAnswer/truncated 由结果决定；本构造的 question 含 answers。
         if kind == "question":
             want |= {"answers"}
         ok(out.get("ok") is True, "read(%s) 应成功：%r" % (kind, out))
         ok(set(out) == want, "read(%s) 字段集与冻结基线不符：多 %s / 缺 %s"
            % (kind, sorted(set(out) - want), sorted(want - set(out))))
-        ok("stats" in out, "stats 在二次投影后丢了：%r" % sorted(out))
+        ok("stats" in out, "stats 在单次投影后丢了：%r" % sorted(out))
 
 
 @case("read: 声明删一个键，真实输出跟着少且不崩溃（含 stats 负路径）")

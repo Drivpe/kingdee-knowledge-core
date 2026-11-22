@@ -6,7 +6,7 @@
     "notes": [
       "期望值是录制时在固定 fake 上游上的真实输出,不是从 contract.json 派生的。",
       "stats.elapsedMs 为时序量,录制时归一为 <elapsedMs>;其余键与键序逐字冻结。",
-      "requests 是发往上游的 URL 清单(并发下完成顺序不定,故去重后排序),它冻结的是请求参数与每路请求次数,不冻结并发时序。",
+      "requests 是发往上游的 URL 清单(并发下完成顺序不定,故保留重复项后排序),它冻结的是请求参数与每路请求次数,不冻结并发时序。",
       "限速器不参与本基线:它的等待是时序量,且不影响 stats.upstreamCalls。"
     ]
   },
@@ -1737,7 +1737,7 @@
       "result": {
         "error": {
           "exception": "InternalError",
-          "message": "keywords 应为**词列表**,收到单个字符串: '资产'。内核不再收整句(位置参数 text 已删,ADR-0016)——请先按 WORD-SPLITTING.md 的拆词规范把问题拆成关键词,再以列表传入:search(keywords=[\"词1\", \"词2\"])",
+          "message": "keywords 应为**词列表**,收到单个字符串: '资产'。内核不再收整句(位置参数 text 已删,ADR-0016)——请先按调用方的拆词规范把问题拆成关键词,再以列表传入:search(keywords=[\"词1\", \"词2\"])",
           "code": null
         }
       },

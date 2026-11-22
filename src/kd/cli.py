@@ -8,9 +8,9 @@
 `health` 已于 2026-11-20 删除(ADR-0011 增补记)——本 CLI 是**薄 adapter**,
 不再为自检而读私有配置。
 
-⚠️ **私有值的读取方式**(票 07):`core._impl()` 观测口已废止。版本号、类型白名单
-与帮助文案里的内核数值,按"谁用谁取"直接从真正持有它们的私有模块读
-(`kd._impl._config` / `kd._impl._manifest`),不再经 kd.core 暴露内部路径。
+⚠️ **adapter 的取值边界**(票 07/09):`core._impl()` 观测口已废止,CLI 也不直接
+import 任何 `kd._impl` 模块。版本号读公开包属性 `kd.__version__`;类型白名单与帮助文案
+里的内核数值读随包 `contract.json`。私有实现的模块名和函数名因此不是 CLI 的依赖。
 
 子命令一律**真正删除**,不留 "unsupported" 占位——占位会把「已知失败」混进回归基线。
 
@@ -25,17 +25,24 @@
 """
 import argparse
 import json
+import os
 import sys
 
-from . import core
-from ._impl._config import ENTITY_KINDS, VERSION, max_keywords
-from ._impl._manifest import _PER_ROUTE_WANT
+from . import __version__, core
 
-# 单一真源:版本号与类型白名单都从实现体取,不在本文件复制字面量。
-_VERSION = VERSION
-# kind 白名单只有一个来源:实现体的 ENTITY_KINDS。`--type` 已随 v6.6 删除,
-# 现在只有 `read --kind` 用它(集合语义仍是"实体类型白名单")。
-_VALID_KINDS = ENTITY_KINDS
+# CLI adapter 不读私有实现:公开包版本 + 随包声明就是它需要的全部元数据。
+# 声明缺失时沿用内核同值兜底,保证 --help 仍可用;正常发行包由 package-data 保证文件存在。
+try:
+    with open(os.path.join(os.path.dirname(__file__), "contract.json"), encoding="utf-8") as _f:
+        _CONTRACT = json.load(_f)
+except Exception:
+    _CONTRACT = {}
+_VERSION = __version__
+_VALID_KINDS = tuple(_CONTRACT.get("search", {}).get("resultKeysByType", {})) or (
+    "knowledge", "question", "article", "other")
+_LIMITS = _CONTRACT.get("limits", {})
+_PER_ROUTE_WANT = int(_LIMITS.get("pageSize") or 10)
+_MAX_KEYWORDS = int(_LIMITS.get("maxKeywords") or 7)
 
 
 def _out(obj):
@@ -159,10 +166,10 @@ def build_parser():
         description="金蝶官方知识 CLI(匿名免费:零账号/零点数/零模型)。AI-first:默认输出 JSON,"
                     "stdout=数据 stderr=进度。检索收敛为一条路径(ADR-0013):"
                     "kd search 出多路清单(只给标题级信息)→ 你按标题匹配度挑 → kd read 取全文 →"
-                    " 你按技能目录里的 ANSWER-SPEC.md 合成回答。"
+                    " 你按调用方的合成规范生成回答。"
                     "本套件只产清单/全文、不合成回答(ADR-0008)——排序由上游综合排序决定,"
                     "内核只去重,不产生任何评分。"
-                    "⚠️ 内核**不拆词**(ADR-0016):你必须先按技能目录 WORD-SPLITTING.md 的规范把问题拆成"
+                    "⚠️ 内核**不拆词**(ADR-0016):你必须先按调用方的拆词规范把问题拆成"
                     "关键词,再经 --kw 传入。",
         epilog='示例:\n'
                '  kd search --kw "应用为禁用状态[网关]" --kw "2510"   # 唯一检索入口:每词一路,按序\n'
@@ -173,7 +180,7 @@ def build_parser():
     sub = p.add_subparsers(dest="cmd", required=True)
 
     # ⚠️ help 文案里的内核数值**从单一来源取**,不再写死字面量(2026-10-01,D2 同型收口):
-    # 原先这里写死 `pageSize=10` 与 `默认 7 词`,而它们是 `_PER_ROUTE_WANT` 与
+    # 原先这里写死 `pageSize=10` 与 `默认 7 词`,而它们是 `limits.pageSize` 与
     # `limits.maxKeywords` 的值 —— 改了内核而文案没跟上时,用户看到的是**错的说明**,
     # 且**没有任何信号**(本仓纪律:「生存期只有一处真相」)。
     s = sub.add_parser("search", help="唯一检索入口:多路关键词检索,只出帖级标题清单"
@@ -189,9 +196,9 @@ def build_parser():
     s.add_argument("--kw", action="append", default=None, required=True,
                    help="检索词(可重复,**每词一路**)。**内核原样、按你给的顺序发送**"
                         "(不拆解/不扩充/不前置/不排序)。顺序即召回顺序:排序键第一维是"
-                        "『你给的第几个词』。拆词规范见技能目录的 WORD-SPLITTING.md。"
+                        "『你给的第几个词』。拆词规范由调用方维护,本内核不附带也不读取它。"
                         "超过上限(默认 %d 词)按顺序取前 N 个,返回体写明 keywordsDropped"
-                        % max_keywords())
+                        % _MAX_KEYWORDS)
     s.add_argument("--product", type=int, default=None,
                    help="93=星空旗舰版(默认) 87=苍穹 1=星空企业版/标准版 2=星空侧二开问答专区 "
                         "0=不过滤(显式指定才生效)。产品线由你判定;不传即默认,内核不做字面推导")

@@ -28,7 +28,7 @@
 """
 from . import _net, _upstream
 from ._config import (apply_link_policy, contract_loaded, log, max_keywords,
-                      result_keys, top_keys)
+                      page_size, result_keys, top_keys)
 from ._concurrent import run_ordered
 from ._errors import UpstreamError
 from ._links import compose_url
@@ -39,7 +39,7 @@ from ._net import clamp_query
 # 每路上游固定取 10 条。清单是"每路 10 条去重归并"的产物,总长最坏只有 路数×10。
 # ⚠️ 原 `_MAX_SCAN_PAGES`(跨页扫描上限)已随 `type_` 过滤一并删除:它是"为 type_
 # 补齐服务的"旋钮,删除后该循环永不执行(决策 5)。
-_PER_ROUTE_WANT = 10
+_PER_ROUTE_WANT = page_size()
 
 
 def _plan_routes(keywords, product_id):

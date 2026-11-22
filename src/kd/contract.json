@@ -95,6 +95,7 @@
   },
   "limits": {
     "maxKeywords": 7,
+    "pageSize": 10,
     "rate": {
       "interactive": {
         "burst": 7,

@@ -50,8 +50,11 @@ if SRC not in sys.path:
 
 from kd import core
 import kd._impl._net as _net
-import kd._impl._config as _config
+from kd import __version__
 from kd._impl._errors import UpstreamError
+
+# 配置只经已确认的网络 adapter 模块解析，测试不绑定它的私有文件名。
+_config = _net._config
 
 FIXTURE_PATH = os.path.join(HERE, "upstream-fake.json")
 BASELINE_PATH = os.path.join(HERE, "public-behavior-baseline.json")
@@ -430,13 +433,13 @@ def record_scenario(sc):
 def meta_of():
     contract = json.loads(open(os.path.join(SRC, "kd", "contract.json"),
                                encoding="utf-8").read())
-    return {"kernelVersion": _config.VERSION,
+    return {"kernelVersion": __version__,
             "contractVersion": contract.get("version"),
             "scenarioCount": len(SCENARIOS),
             "notes": [
                 "期望值是录制时在固定 fake 上游上的真实输出,不是从 contract.json 派生的。",
                 "stats.elapsedMs 为时序量,录制时归一为 <elapsedMs>;其余键与键序逐字冻结。",
-                "requests 是发往上游的 URL 清单(并发下完成顺序不定,故去重后排序),"
+                "requests 是发往上游的 URL 清单(并发下完成顺序不定,故保留重复项后排序),"
                 "它冻结的是请求参数与每路请求次数,不冻结并发时序。",
                 "限速器不参与本基线:它的等待是时序量,且不影响 stats.upstreamCalls。",
             ]}

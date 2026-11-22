@@ -182,6 +182,15 @@ def max_keywords():
         return _FALLBACK_MAX_KEYWORDS
 
 
+def page_size():
+    """每路检索的上游 pageSize(默认 10),供执行链与 CLI 帮助共用声明。"""
+    try:
+        v = _limits().get("pageSize")
+        return int(v) if v else _FALLBACK_PAGE_SIZE
+    except Exception:
+        return _FALLBACK_PAGE_SIZE
+
+
 def max_detail_knowledge():
     """问答深读里**逐条详情展开**的条数上限(默认 5)。
 
@@ -222,6 +231,7 @@ _FALLBACK_BY_TYPE_KEYS = {
 _FALLBACK_FORBIDDEN_KEYS = ("contentText", "fusedScore", "chunks", "contentLen", "useful",
                             "views", "updatedAt", "questionId")
 _FALLBACK_MAX_KEYWORDS = 7
+_FALLBACK_PAGE_SIZE = 10
 _FALLBACK_BURST = 7
 _FALLBACK_MAX_DETAIL = 5
 _FALLBACK_TOP_KEYS = ("ok", "keywords", "queries", "routesPlanned",

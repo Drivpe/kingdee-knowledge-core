@@ -65,8 +65,8 @@ def search(keywords=None, product_id=_DEFAULT_PRODUCT_ID,
     ⚠️ **内核不生成任何检索词**(ADR-0016 决策 1,2026-09-28):`keywords` 是**唯一**
     输入,内核把收到的词**原样、按原顺序**发往上游——不拆解、不扩充、不前置、不排序。
     `queries[]` 与你给的词逐字、逐序相同;结果顺序 = (你给词的顺序, 该词内上游名次)。
-    拆词是**调用层**的职责:你按技能目录 WORD-SPLITTING.md 的拆词规范把问题拆成关键词后传进来,
-    内核不持有模型通道。**原句路已随本 ADR 整体废止**(ADR-0009)——原句不再是特殊路,
+    拆词是**调用层**的职责:你按调用方维护的拆词规范把问题拆成关键词后传进来,
+    内核不附带、不读取该规范,也不持有模型通道。**原句路已随本 ADR 整体废止**(ADR-0009)——原句不再是特殊路,
     它就是你想发的一个词。
 
     keywords   检索词列表,**必填**(空则 raise InternalError)。**每词一路**。
@@ -121,7 +121,7 @@ def search(keywords=None, product_id=_DEFAULT_PRODUCT_ID,
     if isinstance(keywords, (str, bytes)):
         raise InternalError(
             "keywords 应为**词列表**,收到单个字符串: %r。"
-            "内核不再收整句(位置参数 text 已删,ADR-0016)——请先按 WORD-SPLITTING.md 的拆词规范"
+            "内核不再收整句(位置参数 text 已删,ADR-0016)——请先按调用方的拆词规范"
             "把问题拆成关键词,再以列表传入:search(keywords=[\"词1\", \"词2\"])"
             % (keywords[:40] if isinstance(keywords, str) else keywords,))
     # ⚠️ **dict 同类拒掉**(v6.6 审查补):`dict` 是可迭代的,`for kw in {...}` 会遍历
@@ -186,7 +186,7 @@ def read(kind, oid, rate=None):
     (帖子太长没读完,接受现状并在答案里声明)或 `"upstream_error"`(**上游报错,该重试**)。
     两者必须分开——把"上游坏了"与"资料就这么多"压成同一个值,会让召回置信度判定
     在最该保守的时候给出乐观结论。
-    ⚠️ 该标记是**给调用方看的诊断**,不得出现在给用户的答案正文里(见 ANSWER-SPEC)。
+    ⚠️ 该标记是**给调用方看的诊断**,调用方合成答案时不得把它写进给用户的答案正文。
     """
     kind = str(kind or "knowledge").lower()
     # ⚠️ 校验分两层(2026-09-29,工单 #32):
