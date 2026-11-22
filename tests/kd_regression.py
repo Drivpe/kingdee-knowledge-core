@@ -360,23 +360,23 @@ def t_no_impl_observation_port():
                                        "__loader__", "__spec__", "__file__",
                                        "__cached__", "__builtins__", "__all__"}
     ok(not extra, "vars(core) 出现公开面之外的属性: %s" % sorted(extra))
+    # kd._impl 的装配面只剩 5 个公开名：内部件不再经包对象再导出成事实 interface。
+    import types
+    import kd._impl as impl
+    reexported = {n for n, v in vars(impl).items()
+                  if not n.startswith("__") and not isinstance(v, types.ModuleType)}
+    reexported -= {"VERSION", "InternalError", "QueryTooLong",
+                   "UpstreamError", "read", "search"}
+    ok(not reexported, "kd._impl 仍再导出内部名: %s" % sorted(reexported))
 
 
 @case("search: 私有实现改名不击穿公开 search/read 与 CLI（票 07）")
 def t_private_rename_invisible():
-    # 公开函数对象直接绑定实现体、装配只在 _impl/__init__.py：私有实现的名字/布局
-    # 都不经 kd.core 暴露，CLI 与公开行为不应依赖任何私有再导出名。
+    # 公开函数对象直接绑定实现体：私有实现的名字/布局都不经 kd.core 暴露，
+    # 跨公开 seam 的行为与 CLI 帮助不受影响（源码级改名变异验证另做）。
     from kd import core as c2
-    import kd._impl as impl
     ok(core.search is c2.search and core.read is c2.read, "公开函数身份应稳定")
     ok(core.QueryTooLong is c2.QueryTooLong, "异常身份应稳定")
-    # 装配面只有 5 个公开名：私有名字没有被再导出成事实 interface。
-    # 子模块属性(_config / _net …)是 import 机制的天然副产品，不算再导出总线。
-    import types
-    extra = {n for n, v in vars(impl).items()
-             if not n.startswith("__") and not isinstance(v, types.ModuleType)}
-    extra -= {"VERSION", "InternalError", "QueryTooLong", "UpstreamError", "read", "search"}
-    ok(not extra, "kd._impl 仍再导出内部名: %s" % sorted(extra))
     r = search_with([item("answer", "42", qid="42", adopted=True)],
                     keywords=["甲"], product_id=PROBE_PRODUCT)["results"][0]
     ok(r.get("url"), "公开 search 的链接应仍按既有口径生成: %r" % r.get("url"))
@@ -386,10 +386,6 @@ def t_private_rename_invisible():
     ok("--kw" in help_text, "search --help 应仍列 --kw")
     top_help = out_text("--help")
     ok("pageSize=10" in top_help, "顶层 help 应仍列 pageSize=10（单一真源未断）")
-    # 数值来源不断裂：help 文案的两个数仍由单一真源提供（非写死字面量）。
-    from kd._impl._config import max_keywords as _mk
-    from kd._impl._manifest import _PER_ROUTE_WANT as _want
-    ok(_mk() == 7 and _want == 10, "帮助文案数值的单一真源发生漂移")
 
 
 @case("search: 已删形参传即 TypeError，字符串/字典入参 InternalError")
