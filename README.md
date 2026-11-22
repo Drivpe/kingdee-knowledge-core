@@ -63,7 +63,7 @@ python3 tests/kd_regression.py          # 离线组:不联网、无需环境变�
 python3 tests/baseline/replay_baseline.py   # 公开行为基线重放
 ```
 
-改内核后先跑离线组与基线重放;联网用例(加 `--online`)保持人类调用频率。
+改内核后先跑离线组与基线重放。离线套件没有 `--online`;在线验收由维护者按需手动跑一次 search→read smoke,不执行高频在线回归。
 
 ## 长期文档
 
