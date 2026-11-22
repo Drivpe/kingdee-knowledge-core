@@ -285,18 +285,10 @@ def result_keys(kind=None):
     return tuple(keys)
 
 
-def result_forbidden_keys():
-    """清单条目**出现即 FAIL** 的历史残留键集(从 contract.json 声明取)。
-
-    ⚠️ 保留声明是**刻意的**(ADR-0016 决策 8):它记着"这些键是刻意删掉的"
-    (contentText / fusedScore / questionId / views / updatedAt …),防后人顺手加回来。
-    但它是**文档记录**,不是运行期闸门——清单字段是白名单拼出来的,白名单外产不出键,
-    对生产输出断言"没出现禁键"是恒绿的重言式(T4 修掉的"回声与自回声比"同型)。
-    故生产路径不读它,只有回归用例读(作为一份可引用的记录)。
-    """
-    keys = ((_contract().get("search") or {}).get("resultForbiddenKeys")
-            or list(_FALLBACK_FORBIDDEN_KEYS))
-    return tuple(str(k) for k in keys)
+# result_forbidden_keys() 已删除(票 07):它生产零消费者,回归用例直接读
+# contract.json 的 search.resultForbiddenKeys(冻结基线 RESULT_FORBIDDEN_KEYS)。
+# 声明里的禁止键记录**原样保留**(ADR-0016 决策 8)——它是"这些键刻意删掉了"
+# 的文档记录,不因删掉这个零消费者读取函数而消失。
 
 
 def top_keys():

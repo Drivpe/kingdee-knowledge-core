@@ -216,6 +216,8 @@ v6 的"三级回退"退化为两级;`kd health` 的 `landing` 字段、`docstore
   以及 `_PER_ROUTE_WANT` / `max_keywords()`(帮助文案里的内核数值)。
   ⚠️ 如实记:后两处仍是私有名读点,「CLI 只跨公开 seam」在**本轮之后仍未完全成立**
   ——它属于票 07(收缩观测口与私有再导出),不在本轮范围。
+  **后续(2026-11-22,票 07)**:观测口已整体废止,CLI 那两处改为直读
+  `kd._impl._config` / `kd._impl._manifest` 的最小导入,详见 ADR-0013 增补记。
 - 随 health 删除,`_impl/__init__.py` 里**只为它存在的两个再导出**(`_CONTRACT_PATH`、
   `UPSTREAM_TEXT_MAX`)同批删除:生产与测试都零消费者的名字留着,比删掉更不诚实。
 

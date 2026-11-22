@@ -46,8 +46,10 @@
 `scripts/check_core_surface.py` 已于 2026-09-27 整体删除,其中三条真防静默失效的
 判据并入离线回归)。
 
-**内部件仍需可读时**:`kd.core._impl()` 返回承载实现的包对象(显式内部观测口),
-仅用于测试与自检;它带前导下划线、不在 `__all__` 内,不参与公开契约。
+**观测口已废止**(2026-11-22,票 07,ADR-0013 增补记):原 `kd.core._impl()` 曾返回
+承载实现的包对象供测试/自检读取内部件;health 删除后它只剩测试消费者,且把 67 个
+再导出变成隐性 interface。现直接由需要内部件的调用方(CLI 帮助文案、冻结基线、
+测试 fake adapter)各取所需模块,不再经 kd.core 暴露任何内部路径。
 
 上游接口(匿名,零 cookie):
   检索    GET https://vip.kingdee.com/api/search?text=&page=&pageSize=&global=&sortsType=&productIds[0]=
@@ -64,9 +66,8 @@
 __all__ = ["search", "read", "QueryTooLong", "UpstreamError", "InternalError"]
 
 # 实现载体。import 的副作用(定义全部内部件)发生在 kd._impl 的命名空间内,
-# 不在本模块留下任何内部名。这里故意**不留模块级别名**:把 `_impl` 绑在本模块
-# 会让 `kd.core._impl` 成为一条属性面,进而能摸到内部件——正是本机制要堵的洞。
-# 改用 _impl() 惰性取(见下)。
+# 不在本模块留下任何内部名。装配别名用后立即 del(见文件末尾),
+# 故 vars(kd.core) 恒等于 5 个公开名 + 双下划线元数据,无任何内部属性面。
 import importlib as _importlib
 
 # 公开异常类:直接复用实现体里的类对象,身份一致——
@@ -82,28 +83,6 @@ InternalError = _IMPL.InternalError
 search = _IMPL.search
 read = _IMPL.read
 
-# 观测口别名在绑定完成后立即清除:`_IMPL` / `_importlib` 不得留在 __dict__ 里。
+# 装配别名在绑定完成后立即清除:`_IMPL` / `_importlib` 不得留在 __dict__ 里。
+# 故 vars(kd.core) 恒等于 5 个公开名 + 双下划线元数据;无任何 __getattr__ 观测口。
 del _IMPL, _importlib
-
-
-def __getattr__(name):
-    """内部观测口(惰性,不进命名空间)。
-
-    本机制要求 `kd.core` 的可见名恰为 5 个公开名,但内部件仍需一个**显式**的观测路径
-    (测试要读内部配置;原第三类消费者 CLI health 已删,见 ADR-0011 增补记),
-    不能靠"从 kd.core 摸私有属性"这种
-    君子协定。故用 PEP 562 模块级 `__getattr__`:
-
-        kd.core._impl()        -> 承载实现的包对象(kd._impl)
-        kd.core._rrf_fuse      -> AttributeError(不会经过这里返回函数)
-
-    只有白名单里的私有名才会被解析;其余一律 AttributeError,保证
-    `vars(kd.core)` 恒等于 5 个公开名 + 双下划线元数据。
-    """
-    if name == "_impl":
-        def _impl():
-            """返回承载实现的包对象(kd._impl);测试/自检用,不属公开契约。"""
-            import importlib
-            return importlib.import_module("kd._impl")
-        return _impl
-    raise AttributeError("module %r has no attribute %r" % (__name__, name))

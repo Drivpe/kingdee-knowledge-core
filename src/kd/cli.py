@@ -8,10 +8,9 @@
 `health` 已于 2026-11-20 删除(ADR-0011 增补记)——本 CLI 是**薄 adapter**,
 不再为自检而读私有配置。
 
-⚠️ **仍未收口的一处**(属票 07,不在本轮):`_IMPL = core._impl()` 仍在模块级取私有实现包,
-`_PER_ROUTE_WANT` 与 `max_keywords()` 只为**帮助文案**里的内核数值从它读。
-版本号(`VERSION`)与类型白名单(`ENTITY_KINDS`)是"单一真源"纪律要求的,保留;
-但那两个帮助文案读点不是。票 07 会把观测口整体收掉。
+⚠️ **私有值的读取方式**(票 07):`core._impl()` 观测口已废止。版本号、类型白名单
+与帮助文案里的内核数值,按"谁用谁取"直接从真正持有它们的私有模块读
+(`kd._impl._config` / `kd._impl._manifest`),不再经 kd.core 暴露内部路径。
 
 子命令一律**真正删除**,不留 "unsupported" 占位——占位会把「已知失败」混进回归基线。
 
@@ -29,14 +28,14 @@ import json
 import sys
 
 from . import core
+from ._impl._config import ENTITY_KINDS, VERSION, max_keywords
+from ._impl._manifest import _PER_ROUTE_WANT
 
 # 单一真源:版本号与类型白名单都从实现体取,不在本文件复制字面量。
-_IMPL = core._impl()
-
-_VERSION = _IMPL.VERSION
+_VERSION = VERSION
 # kind 白名单只有一个来源:实现体的 ENTITY_KINDS。`--type` 已随 v6.6 删除,
 # 现在只有 `read --kind` 用它(集合语义仍是"实体类型白名单")。
-_VALID_KINDS = _IMPL.ENTITY_KINDS
+_VALID_KINDS = ENTITY_KINDS
 
 
 def _out(obj):
@@ -179,7 +178,7 @@ def build_parser():
     # 且**没有任何信号**(本仓纪律:「生存期只有一处真相」)。
     s = sub.add_parser("search", help="唯一检索入口:多路关键词检索,只出帖级标题清单"
                                       "(每路 pageSize=%d,按你给词的顺序;要全文再用 kd read)"
-                                      % _IMPL._PER_ROUTE_WANT,
+                                      % _PER_ROUTE_WANT,
                        epilog='示例:\n'
                               '  kd search --kw "应用为禁用状态[网关]" --kw "2510" --product 93\n'
                               '  kd search --kw "信用额度" --kw "应收单 信用"   # 拆好的词,按序发,每词一路\n'
@@ -192,7 +191,7 @@ def build_parser():
                         "(不拆解/不扩充/不前置/不排序)。顺序即召回顺序:排序键第一维是"
                         "『你给的第几个词』。拆词规范见技能目录的 WORD-SPLITTING.md。"
                         "超过上限(默认 %d 词)按顺序取前 N 个,返回体写明 keywordsDropped"
-                        % _IMPL.max_keywords())
+                        % max_keywords())
     s.add_argument("--product", type=int, default=None,
                    help="93=星空旗舰版(默认) 87=苍穹 1=星空企业版/标准版 2=星空侧二开问答专区 "
                         "0=不过滤(显式指定才生效)。产品线由你判定;不传即默认,内核不做字面推导")

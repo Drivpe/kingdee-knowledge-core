@@ -36,9 +36,9 @@ from ._text import _is_true, _title_of, html2text
 # 这里加一道就变成两个闸门 —— 政策有两处生效点,
 # 单一来源即失效。故 `_norm_item` 用 `compose_url`(数据形状层),不是 `link_for_item`。
 #
-# ⚠️ 模板表 `_URL_OF` **已不在本模块定义** —— 它在 `_links.py`(该名字仍由
-# `_impl/__init__.py` 从那里**再导出**,故观测口 `core._impl()._URL_OF` 与既有回归
-# 断言不受影响)。本模块不再 import 它:留着不用的 import 就是"第二处真相"的入口。
+# ⚠️ 模板表 `_URL_OF` **已不在本模块定义** —— 它在 `_links.py`。票 07 后
+# `_impl/__init__.py` 不再再导出内部名,观测口 `core._impl()` 已废止;本模块
+# 更不该 import 它:留着不用的 import 就是"第二处真相"的入口。
 # ⚠️ 同批搬去的 `_question_url` 已在 `_links.py` 内**删除**(重构后零读点),
 # 本模块也从未引用它 —— 见 `_links.py` 末尾的留证注释。
 
@@ -108,8 +108,8 @@ def _norm_item(x, et):
                 # **无条件**重算 url(因为帖级要按"采纳优先"在**同一帖的多条回答**里挑
                 # 一条,而单条回答不知道自己是不是被采纳的那条)。故本行在**端到端 search**
                 # 上的值不直接进入输出 —— 它的作用是:
-                #   ① 回答级条目**本身是合法的中间形态**(`_norm_item` 也是公开观测口
-                #      `core._impl()._norm_item`,直调它的判据读这一行);
+                #   ① 回答级条目**本身是合法的中间形态**(`_norm_item` 是归一层内部
+                #      函数,票 07 后不再走 `core._impl()._norm_item` 观测口);
                 #   ② knowledge / article 两档**没有**帖级合并那一步,本行的值就是
                 #      最终值(实测:两档 norm 的 url 与 merge 的输出逐字相同)。
                 # 之所以不删:删了会让"归一即产出合法条目"这条契约在 question 档破例,

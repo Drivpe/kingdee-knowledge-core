@@ -11,11 +11,10 @@ import sys
 
 
 def _core_and_config():
-    """经公开观测口 core._impl() 拿到实现包，再从**实际解析到的模块对象**
-    取 config —— 不硬编码私有文件名，故 _config.py 改名不影响测试。"""
+    """从**实际解析到的模块对象**取 config —— 不硬编码私有文件名，故 _config.py
+    改名不影响测试。票 07 后 kd.core 不再有 _impl() 观测口，测试只走唯一的
+    网络 adapter seam（_net._get_json），配置对象也从该模块顺藤取到。"""
     from kd import core
-    impl = core._impl()
-    # 生产代码里 _net 模块持有 config 的同一对象；经它取，跟着生产走。
     import kd._impl._net as net
     config = net._config
     return core, config

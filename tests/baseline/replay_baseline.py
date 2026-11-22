@@ -430,7 +430,7 @@ def record_scenario(sc):
 def meta_of():
     contract = json.loads(open(os.path.join(SRC, "kd", "contract.json"),
                                encoding="utf-8").read())
-    return {"kernelVersion": core._impl().VERSION,
+    return {"kernelVersion": _config.VERSION,
             "contractVersion": contract.get("version"),
             "scenarioCount": len(SCENARIOS),
             "notes": [
