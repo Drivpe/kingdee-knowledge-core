@@ -6,14 +6,8 @@
 """
 import time
 
-# ⚠️ **`VERSION` 曾在此 import 并进 `__all__`** —— 是**死 import**:
-# 本模块代码零读点,而"版本单一真源"的两条链都不经过这里
-# (`kd.__version__` / `cli._VERSION` 走 `kd._impl.VERSION`,那份来自 `_config`)。
-# 2026-10-01 死 import 清理时删除 import 与 `__all__` 里那一项
-# (编号口径见 ADR-0018 末节:它**不是** ADR-0014 的 `D14`,那套编号指的是
-# "产品线字面推导删除";`.scratch/` 里那第二套编号已随该目录 gitignore 而不可解析)。
-# ⚠️ 同理删除 `_DETAIL_KINDS`:它决定 `read --kind` 的 choices,而那个消费者在
-# `_detail` / `cli`,本模块零读点(`read` 的类型校验走 `ENTITY_KINDS`)。
+# 导入面只保留本模块真正读取的名字：`_config` 的版本/类型/计数由各自消费者
+# 直取其声明处，不在本模块做无读点的再导出（ADR-0016 声明必须有消费者）。
 from ._config import (ENTITY_KINDS, UPSTREAM_TEXT_MAX, _up_now,
                       default_product_id, log)
 from ._detail import _detail

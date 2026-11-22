@@ -26,13 +26,11 @@
   * `max_routes` 形参 —— 上限只在声明里有一个值(`limits.maxKeywords`);
   * 顶层 `text` 键 —— 位置参数删除后,"整句"不再有特殊地位,回显只留 `keywords[]`。
 """
-import sys
-from concurrent.futures import ThreadPoolExecutor, as_completed
-
 from . import _net, _upstream
 from ._config import (apply_link_policy, contract_loaded, log, max_keywords,
                       result_keys, top_keys)
-from ._errors import UpstreamError, _raise_min
+from ._concurrent import run_ordered
+from ._errors import UpstreamError
 from ._links import compose_url
 from ._net import clamp_query
 # ⚠️ 链接构造走 `_links.compose_url`(唯一归属地,2026-10-01 K1)——原先是
@@ -361,141 +359,53 @@ def _search_manifest(keywords=None, product_id=None, blank_dropped=0, global_=Fa
     #
     # ⚠️ **去重本身保留**:不得对同一 query 发两次上游请求。
 
-    # ---- 路由并发(ADR-0017 决策 4 阶段一):串行 for → 并发池 ----
-    #
-    # ⚠️ **收益归因**:典型工作流(search 3 路 + read 2 篇)中位 2372ms → 976ms,
-    # 靠的是"网络往返重叠",**与放宽红线无关**(不动任何数字)。
-    # 串行时网络完全不重叠,实测串行吃掉 60–70%、限速只占 20–40%。
-    #
-    # ⚠️ **并发度就是路数**(不加额外闸):`maxKeywords = 7` 已是声明里的上限,
-    # 而 `_RateLimiter` 才是唯一的节流来源(实测上游在 7 路并发下零限流信号:
-    # 无 Retry-After / X-RateLimit-*,totalElements 与串行逐条一致,
-    # 并发 3 路 395ms ≈ 单请求 394ms 即真并发)。这里不再叠一层自造的并发闸 ——
-    # 那会是"第二个限速器",与本仓"单一来源"的纪律冲突。
-    #
-    # ⚠️ **顺序契约(不得让完成先后决定顺序)**:`route_lists` 与 `route_errors`
-    # 最终仍**严格按路号**排列。做法是按下标就地写回、最后按序过滤 ——
-    # 不是"谁先回来谁先 append"(那会让清单顺序随网络抖动漂移,
-    # 而排序契约 `(首次出现的路序号, 该路内上游名次)` 依赖路序稳定)。
+    # ---- 路由并发:执行机制走 _concurrent,业务政策留本处 ----
+    # 并发上界就是路数(maxKeywords 已是声明上限),限速仍只有 _RateLimiter 一处。
+    # 上游故障 → routeErrors;程序缺陷 → 按最小路号重抛;中断类立即穿透。
     results, errors = {}, {}
+    route_by_no = dict(enumerate(route_list, 1))
+
+    def _route_failure(route_no, e):
+        # 业务政策 ①:上游故障只进 routeErrors,不拖垮整轮。
+        r = route_by_no[route_no]
+        if isinstance(e, UpstreamError):
+            log("UPSTREAM_ERR:", "route=%s code=%s msg=%s"
+                % (r.get("kind"), e.code, e.message))
+            errors[route_no] = {"route": route_no, "kind": r.get("kind"),
+                                "terms": r.get("terms"),
+                                "error": "upstream_error", "code": e.code,
+                                "message": e.message}
+        else:
+            # 传输层/协议层/解析层故障:同属可重试的上游故障,无业务错误码。
+            log("UPSTREAM_ERR:", "route=%s terms=%s %s: %s"
+                % (r.get("kind"), str(r.get("terms"))[:40], type(e).__name__,
+                   str(e)[:120]))
+            errors[route_no] = {"route": route_no, "kind": r.get("kind"),
+                                "terms": r.get("terms"),
+                                "error": type(e).__name__,
+                                "code": None, "message": str(e)[:200]}
+
+    def _route_bug(route_no, e):
+        # 业务政策 ②:程序缺陷只留痕,不写进 routeErrors;按最小路号重抛由
+        # run_ordered 统一负责。
+        r = route_by_no[route_no]
+        log("ROUTE_BUG:", "route=%s terms=%s %s: %s(这是内核缺陷,"
+            "不是上游故障,故不进 routeErrors)"
+            % (r.get("kind"), str(r.get("terms"))[:40], type(e).__name__,
+               str(e)[:120]))
+
     if route_list:
-        with ThreadPoolExecutor(max_workers=len(route_list)) as pool:
-            futures = {}
-            # 程序缺陷按**路号**记账:`{路号: exc_info}`,收齐所有 future 后取
-            # `min(bug)` 重抛。**不得**记"最先完成的那个"—— 那会让"抛哪个异常"
-            # 由线程调度决定(同一对缺陷只把耗时对调,抛出类型就变),违反本仓
-            # 「完成先后不得泄漏进结果」的硬契约。深读侧为同一件事早就改成
-            # 「最小页号 / 最小下标」(见 `_detail` 的 `failed_pages` 与 `det_failed`
-            # 两处),检索侧原先漏了这一刀。三处的重抛现已统一走
-            # `_errors._raise_min`(2026-10-03,X7)。
-            # ⚠️ 这与下面 F3 的"中断类立即 `raise`"是**两件不同的事**:本处管
-            # **确定性**(抛哪一个),F3 管**响应性**(中断不再等收齐)。
-            # 值为 `sys.exc_info()` 三元组(不是异常对象)—— 重抛要带原 traceback 穿透;
-            # 重抛实现统一在 `_errors._raise_min`(2026-10-03,X7 三处收口)。
-            bug = {}
-            for route_no, r in enumerate(route_list, 1):
-                # sortsType 由调用方给的值直通(原句路的固定 sortsType 特殊性已随
-                # ADR-0009 废止消失,`_route_sorts_type` 的 `or` 链风险一并消失)。
-                # ⚠️ 这里必须取 `r["productIds"]`(经 `.get()` 容忍缺键),**不能**直接传
-                # `product_id`(v6.6 审查复核):规格 A7 曾把本行判为"死分支、可删",但实测
-                # 它**不是死的** —— `_plan_routes` 对"不过滤"(`0`/`None`)**刻意不写**
-                # `productIds` 键,于是 `r.get(...)` 得到 `None`(省略上游参数 = 真不过滤);
-                # 若改成传 `product_id`,显式 `0` 会原样送给上游,而上游把
-                # `productIds[0]=0` **当真值过滤**(会把 Knowledge 挤出前排)。
-                # 改成传 `product_id` 会让 `t_product_id_two_states` 直接红:
-                # 「显式 0 时上游必须省略产品过滤,实收 [0]」。故此处保留原写法。
-                futures[pool.submit(
-                    _route_search_once, r["terms"], r.get("productIds"), rate,
-                    global_=global_, sorts_type=int(sorts_type),
-                    page_size=_PER_ROUTE_WANT)] = (route_no, r)
-            for fut in as_completed(futures):
-                route_no, r = futures[fut]
-                try:
-                    items = fut.result()
-                except _net.UPSTREAM_FAILURES as e:
-                    # ---- ① **上游故障** → 失败隔离:只进 `routeErrors`,不拖垮整轮 ----
-                    # ⚠️ **本 catch 的宽度就是 `_net.UPSTREAM_FAILURES`**(2026-09-29 收口):
-                    # 原先这里是两条 —— `except UpstreamError` + `except Exception` —— 后一条
-                    # 把**程序缺陷**(AttributeError/TypeError…)也吞成了"上游抖了"。后果不是
-                    # 日志难看,而是**我们的 bug 变成了对调用方的重试指令**:
-                    # SKILL.md 给调用方的规则是「`routeErrors[]` 非空 ⇒ 召回不完整 ⇒ 换词重试」,
-                    # 于是调用方对着一个真·程序缺陷反复换词重搜,而 `ok` 仍是 `true`。
-                    # 现在"什么算上游故障"只有 `_net` 一处来源,检索侧与深读侧逐字同口径
-                    # ——它们此前正是"某层认识这种失败、另一层不认识"的不对称。
-                    # ⚠️ **失败隔离不变**:单路上游故障只进 `routeErrors`,其余路照常出条目
-                    # (与并发前的 `continue` 语义逐字相同)。
-                    if isinstance(e, UpstreamError):
-                        # 上游业务错误(HTTP 200 但 body 带 errorCode)。必须显式暴露给调用方:
-                        # 否则"某路被上游拒绝"会被读成"官方没这类文档"——清单是唯一交付物,
-                        # 这条路尤其不能静默。上游给了错误码,故保留 `code`。
-                        log("UPSTREAM_ERR:", "route=%s code=%s msg=%s"
-                            % (r.get("kind"), e.code, e.message))
-                        errors[route_no] = {"route": route_no, "kind": r.get("kind"),
-                                            "terms": r.get("terms"),
-                                            "error": "upstream_error", "code": e.code,
-                                            "message": e.message}
-                    else:
-                        # 传输层 / 协议层 / 解析层故障(URLError、超时、连接重置、
-                        # 响应非 JSON、读响应体阶段的协议错):同属**可重试的上游故障**,
-                        # 但上游没给业务错误码 → `code: None`,`error` 仍是失败形态名。
-                        # ⚠️ 字段取值**逐字沿用改动前**(那时这一档走 `except Exception`)——
-                        # 本轮只收窄**分类依据**(从"任何异常"到"上游故障"),不改对外形态。
-                        log("UPSTREAM_ERR:", "route=%s terms=%s %s: %s"
-                            % (r.get("kind"), str(r.get("terms"))[:40], type(e).__name__,
-                               str(e)[:120]))
-                        errors[route_no] = {"route": route_no, "kind": r.get("kind"),
-                                            "terms": r.get("terms"),
-                                            "error": type(e).__name__,
-                                            "code": None, "message": str(e)[:200]}
-                    continue
-                except (KeyboardInterrupt, SystemExit):
-                    # ---- ①bis **中断类**(Ctrl-C / `sys.exit`)→ 立即穿透 ----
-                    # ⚠️ **不记为缺陷**(F3):原先这两类落进下面的 `except BaseException`,
-                    # 于是 Ctrl-C 会被写成 `ROUTE_BUG: …(这是内核缺陷,不是上游故障)`
-                    # —— 类型/退出码/耗时都不变,但它**消耗的是本轮刚立起来的
-                    # "可信缺陷信号"**,而且重复 Ctrl-C 会被吸收、不再即刻中断
-                    # (人要停手,内核却在继续等)。
-                    # ⚠️ **取舍(如实写清)**:立即 `raise` 时,其余 future 的异常
-                    # **不再经上面的 `log` 留痕**(它们只会安静地留在 future 对象上;
-                    # `with ThreadPoolExecutor` 的 `__exit__` 仍会等它们结束)。
-                    # 取"立即响应"是因为**人已经中断**了 —— 此刻诊断留痕不是第一优先级。
-                    # ⚠️ 这与上面"缺陷按路号记账、收齐后 `min(bug)` 重抛"的**确定性**
-                    # 是两件不同的事:那条管的是"抛哪一个",本条管的是"多久不再等"。
-                    # (下面仍用 `BaseException` 兜底:两条分支"属上游故障"与"不属上游
-                    # 故障"是穷尽的,收窄会留缝。)
-                    raise
-                except BaseException as e:
-                    # ---- ② **程序缺陷** → 响亮穿透,**不得**写进 `routeErrors` ----
-                    # 写进去的代价是双重的:调用方被引向"重试"(而重试永远好不了),
-                    # 且清单 `ok: true` 会把"内核坏了"报成"这次召回有效"。
-                    # 故这里**只留痕、不吞**:诊断进 stderr,异常本身继续上传,
-                    # 由 `cli._guard` 的兜底分支映射成 `internal_error`(退出码 1)。
-                    # ⚠️ 用 `BaseException` 而不是 `Exception`:两条路的语义是穷尽的
-                    # ——"属上游故障"与"不属上游故障",后者一律穿透,不给任何形态留
-                    # 静默被吞的缝(仓库禁忌:把"我们写错了"伪装成"上游抖了")。
-                    log("ROUTE_BUG:", "route=%s terms=%s %s: %s(这是内核缺陷,"
-                        "不是上游故障,故不进 routeErrors)"
-                        % (r.get("kind"), str(r.get("terms"))[:40], type(e).__name__,
-                           str(e)[:120]))
-                    # ⚠️ **按路号记账**(不是"记最先完成的那个"):`min(bug)` 只取决于
-                    # 路号,与线程调度无关 —— 同一输入恒抛同一个异常。
-                    bug[route_no] = sys.exc_info()   # 带原 traceback 穿透
-                    continue
-                results[route_no] = items
-            # ⚠️ **缺陷延迟到"收齐所有 future"之后再抛**,而不是就地 `raise`:
-            # `ThreadPoolExecutor.__exit__` 恒 `shutdown(wait=True)`,就地 raise 并不会更快,
-            # 但会让**其余 future** 的异常**随 `with` 退出一起被吞**(它们只会安静地留在
-            # future 对象上,连日志都没有 —— 于是"某路真实上游故障"整条消失:既无
-            # `UPSTREAM_ERR` 日志、也不进 `routeErrors`)—— 本仓纪律是"失败必须可见",
-            # 故先把每个 future 都经上面的 `log` 留痕(见 `ROUTE_BUG` / `UPSTREAM_ERR`),
-            # 再按**最小路号**抛出那个缺陷。
-            # 两个循环是同一段等待(退出 `with` 本就要等它们),不引入额外延迟。
-            # ⚠️ 取 `min` 是**确定性**要求(与深读侧的 `failed_pages` / `det_failed`
-            # 同口径,三处共用 `_errors._raise_min`),不是"取最早"——"最早"取决于完成顺序。
-            # 三处记账的值都是 `sys.exc_info()` 三元组,故重抛**带原 traceback**:
-            # 这条穿透能力原先只有本处有,深读侧两处只存异常对象(2026-10-03 收口)。
-            if bug:
-                _raise_min(bug)
+        tasks = {}
+        for route_no, route in route_by_no.items():
+            # r.get("productIds") 容忍缺键:不过滤(0/None)时刻意不写该键,
+            # 显式 0 若透传会被上游当真值过滤(会把 Knowledge 挤出前排)。
+            tasks[route_no] = lambda route=route: _route_search_once(
+                route["terms"], route.get("productIds"), rate,
+                global_=global_, sorts_type=int(sorts_type),
+                page_size=_PER_ROUTE_WANT)
+        results, _ = run_ordered(
+            tasks, max_workers=len(route_list), expected=_net.UPSTREAM_FAILURES,
+            on_failure=_route_failure, on_bug=_route_bug)
     # 按路号还原顺序(并发完成顺序**不得**泄漏进清单)。
     route_lists = [(n, results[n]) for n in sorted(results)]
     route_errors = [errors[n] for n in sorted(errors)]

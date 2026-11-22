@@ -1130,6 +1130,139 @@ def t_bad_runtime_config_no_crash():
             ok(out.get("ok") is True, "坏 %s 不应让 search 崩溃：%r" % (field, out))
 
 
+# ============================ 第三组：ADR-0020 并发 correctness 行为回归（票 08） ============================
+# 全部只经公开 seam（core.search / core.read）+ 唯一 fake adapter，不引用私有执行模块。
+# 覆盖 ADR-0020 决策 1 的三条链路 + 决策边界：部分结果、慢成功+快失败、最小键重抛、
+# 程序缺陷穿透、中断类立即穿透。
+
+@case("ADR-0020: 多路慢成功+快失败 —— 完成先后不泄漏进清单，成功路不被失败拖掉")
+def t_multi_route_slow_success_fast_fail():
+    import threading
+    ev = threading.Event()
+    def route(url):
+        t = url_params(url)["text"]
+        if t == "甲":
+            ev.wait(0.3)           # 第 1 路最慢完成
+            return search_response([item("knowledge", "slow", title="慢成功")])
+        if t == "乙":
+            raise core.UpstreamError(409, "fast fail")   # 第 2 路最快失败
+        return search_response([item("knowledge", "tail", title="尾路")])
+    with upstream(make_router(search=route)):
+        r = core.search(keywords=["甲", "乙", "丙"], product_id=PROBE_PRODUCT)
+    ev.set()
+    ids = [x["id"] for x in r["results"]]
+    ok(ids == ["slow", "tail"], "慢成功路的结果不得被快失败拖掉，且按给词顺序归位：%r" % ids)
+    errs = [e["terms"] for e in (r.get("routeErrors") or [])]
+    ok(errs == ["乙"], "失败路须记录且不泄漏完成序：%r" % errs)
+
+
+@case("ADR-0020: 页级慢成功+快失败 —— 已取回的页全保住并按页号归位")
+def t_page_slow_success_fast_fail():
+    import threading
+    ev = threading.Event()
+    def pages(url):
+        p = int(url_params(url).get("page", 1))
+        if p == 2:
+            ev.wait(0.3)           # 第 2 页最慢完成
+            return {"content": [{"id": "p2a1"}, {"id": "p2a2"}], "totalPages": 3}
+        if p == 3:
+            raise urllib.error.URLError("fast fail")   # 第 3 页最快失败
+        return {"content": [{"id": "p1a1"}], "totalPages": 3}
+    router = make_router(questions=question_post("918"),
+                         answers_pages=pages,
+                         answer_details=lambda url: {"description": "展开"})
+    out = read_with("question", "918", router)
+    ev.set()
+    ids = [a["id"] for a in out.get("answers") or []]
+    ok(ids == ["p1a1", "p2a1", "p2a2"],
+       "慢成功的第 2 页须保住并按页号归位：%r" % ids)
+    ok(out.get("truncated") == "upstream_error", "页级失败须置 upstream_error：%r" % out.get("truncated"))
+
+
+@case("ADR-0020: 详情慢成功+快失败 —— 快失败的详情不得吞掉慢成功的展开")
+def t_detail_slow_success_fast_fail():
+    import threading
+    ev = threading.Event()
+    # 3 条回答（post 声明 answers=3，首页内容也 3 条），逐条详情：第 1 条慢成功展开，
+    # 第 2 条最快失败，第 3 条正常。
+    def pages(url):
+        return {"content": [{"id": "a1"}, {"id": "a2"}, {"id": "a3"}], "totalPages": 1}
+    def details(url):
+        aid = url.rsplit("/", 1)[-1]
+        if aid == "a1":
+            ev.wait(0.3)
+            return {"description": "慢成功展开文本"}
+        if aid == "a2":
+            raise urllib.error.URLError("fast fail")
+        return {"description": "正常展开文本"}
+    # 公开契约：详情级上游故障由外层置 truncated=upstream_error（不抛），
+    # 但慢成功那条的展开必须在返回体里保住（不得因快失败被打断收集）。
+    def pages2(url):
+        return {"content": [{"id": "a1", "description": "摘要1"},
+                            {"id": "a2", "description": "摘要2"},
+                            {"id": "a3", "description": "摘要3"}], "totalPages": 1}
+    router2 = make_router(questions=question_post("919", n_answers=3),
+                          answers_pages=pages2, answer_details=details)
+    out = read_with("question", "919", router2)
+    ev.set()
+    ok(out.get("truncated") == "upstream_error",
+       "详情级上游故障须置 upstream_error（不是静默降级）：%r" % out.get("truncated"))
+    texts = {a["id"]: a.get("contentText") for a in out.get("answers") or []}
+    ok("慢成功展开文本" in (texts.get("a1") or ""),
+       "最慢完成的成功详情不得被快失败吞掉：%r" % texts)
+    ok("正常展开文本" in (texts.get("a3") or ""),
+       "其余成功详情也应展开：%r" % texts)
+
+
+@case("ADR-0020: 最小键确定性重抛 —— 对调两条缺陷的耗时仍抛同一个")
+def t_deterministic_min_key_reraise():
+    # 多路两条缺陷：路 1 = TypeError、路 3 = AttributeError。无论哪条先完成，
+    # 必须恒抛路 1 的 TypeError（最小路号），与线程调度无关。
+    def run(delay_first):
+        import threading
+        ev = threading.Event()
+        def route(url):
+            t = url_params(url)["text"]
+            if t == "甲":
+                if delay_first:
+                    ev.wait(0.25)
+                raise TypeError("bug-route-1")
+            if t == "丙":
+                if not delay_first:
+                    ev.wait(0.25)
+                raise AttributeError("bug-route-3")
+            return search_response([])
+        with upstream(make_router(search=route)):
+            try:
+                core.search(keywords=["甲", "乙", "丙"], product_id=PROBE_PRODUCT)
+            except BaseException as e:
+                return type(e).__name__, str(e)
+            finally:
+                ev.set()
+        return "NO-RAISE", ""
+    a = run(True)
+    b = run(False)
+    ok(a == b, "对调缺陷耗时后应恒抛同一个异常（最小路号）：%r vs %r" % (a, b))
+    ok(a[0] == "TypeError" and "bug-route-1" in a[1],
+       "应抛路 1 的 TypeError（最小路号），实为：%r" % (a,))
+
+
+@case("ADR-0020: 中断类立即穿透 —— KeyboardInterrupt/SystemExit 不记为程序缺陷")
+def t_interrupt_propagates():
+    for exc in (KeyboardInterrupt(), SystemExit(3)):
+        def route(url, e=exc):
+            if url_params(url)["text"] == "甲":
+                raise e
+            return search_response([])
+        with upstream(make_router(search=route)):
+            try:
+                core.search(keywords=["甲", "乙"], product_id=PROBE_PRODUCT)
+            except BaseException as got:
+                ok(type(got) is type(exc), "中断类应原样穿透：%r" % got)
+            else:
+                raise Fail("中断类被吞：%r" % exc)
+
+
 def main(argv):
     print("kd 回归用例集（票 05：公开 interface + 唯一 fake adapter）")
     print("-" * 72)

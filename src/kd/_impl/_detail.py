@@ -9,18 +9,13 @@
 全部回答列表),故 kind 名与"帖子级"这一事实对齐;上游原始值 `answer` 只在
 `_upstream._norm_item` 一处被翻译,本模块不出现它。
 """
-import sys
-from concurrent.futures import ThreadPoolExecutor, as_completed
-
 from . import _net
 from ._config import (ENTITY_KINDS, VIP, _burst, log,
                       max_detail_knowledge, read_keys, read_truncated_values)
-# ⚠️ `UpstreamError` 曾在此 import —— 是**死 import**(本文件只在注释里提到它,
-# 代码零读点:上游故障一律经 `_net.UPSTREAM_FAILURES` 整类判定,不按具体类型分支),
-# 故删除(2026-10-01 死 import 清理;编号口径见 ADR-0018 末节 —— 它**不是**
-# ADR-0014 的 `D14`,那套编号指的是"产品线字面推导删除")。若将来要按类型分支,
-# 从 `_net` 的元组取,别在这里重导。
-from ._errors import InternalError, _raise_min
+from ._concurrent import _raise_min, run_ordered
+# 上游故障只按 _net.UPSTREAM_FAILURES 整类判定,不按具体异常类型分支;
+# 不在本模块重导 UpstreamError(分类宽度单一来源在 _net)。
+from ._errors import InternalError
 # ⚠️ 链接构造与政策闸门**合在一处**走 `link_for_item`(2026-10-01,K1):
 # 原先此处写 `apply_link_policy(kind, _URL_OF[kind] % id)` —— 闸门与模板各来一处,
 # 且问答的回答号在这里另按 `bestAnswer[0]` 推导(与清单侧分叉)。`_URL_OF` 已不在
@@ -149,159 +144,52 @@ def _question_detail(qid, rate=None):
         first = _net._get_json(VIP + "/api/questions/%s/answers?page=1&pageSize=20"
                                % qid, rate)
         pages = [_answer_brief(a) for a in (first.get("content") or [])]
-        # ⚠️ **首页与 `answers` 同步绑定**(2026-09-29 修回归):原写法把 `answers = pages`
-        # 放在并发块**之后**,于是翻页任一路抛 `UpstreamError` 时异常穿透到外层 `except`,
-        # `answers` 仍停在初始 `[]` —— **已经成功取回的首页回答被整体丢弃**,
-        # 把"上游抖一次"伪装成"这帖没回答"(与 HEAD 对照:同桩下 HEAD 保住 5 条,原写法得 0 条)。
-        # 绑定同一列表对象后,后续 `pages.extend(...)` 就地生效,异常路径也能保住已取页。
+        # 不变量：首页与 answers 绑定同一列表对象，成功页就地 extend，
+        # 异常路径也能保住已取回的首页（ADR-0020 决策 1）。
         answers = pages
         total_pages = first.get("totalPages") or 1
         if total_pages > 1:
-            # 并发取剩余页;结果按**页号**归位 —— 完成先后不得决定回答顺序
-            # (与路由并发同一条纪律,见 `_manifest._search_manifest`)。
-            #
-            # ⚠️ **并发度必须有上界**(2026-09-29 修正,code review H3):
-            # 原写法 `max_workers=total_pages - 1` 让**上游决定我们的并发度** ——
-            # 实测构造 `totalPages=200` 时会建 199 个线程、发 200 个请求
-            # (旧实现上限 3 页,67 倍),而 `urlopen` timeout=20s、
-            # `_RateLimiter` interval 200ms → 末位请求要等约 40 秒,
-            # 必然超时。这正好踩在 ADR-0017 自标的「**10+ 路未实测,不应外推**」
-            # 边界上。
-            # 现取 `limits.rate.interactive.burst`(当前 7)作上界:**与"单次操作
-            # 最大在飞请求数"对齐**,不再自造第二个限速器(那会违反"单一来源")。
+            # 并发上界取声明 burst（与单次最大在飞请求数对齐，不自造第二个限速器）。
+            # 口径：只把 _net.UPSTREAM_FAILURES 当局部失败收集；程序缺陷按最小键穿透。
+            # 翻页执行走 _concurrent:按页号归位、逐页失败收集、最小页号重抛。
+            # 首页已单独取并绑定 answers;这里只并发剩余页,成功页就地 extend。
             workers = max(1, min(total_pages - 1, _burst()))
-            # ⚠️ **已完成页必须归位到 `pages` 上,不能攒在局部变量里等全部成功**
-            # (2026-09-29 二次修正,复现为真回归)。首版把各页结果先收进函数局部
-            # `rest[p]`,等**全部** future 成功穿越循环后才 `pages.extend(...)`;
-            # 于是任一路抛 `UpstreamError` 时 `rest` 随栈帧丢弃 ——
-            # **已经 in-flight 返回、只差归位的那几页被整体丢掉**。
-            # 实测(同构造:page1=5 条、page2=3 条、page3 抛错且最先完成):
-            # 首版 `answersTaken=5`,而 HEAD 的串行版在同一构造下保住 **8** 条
-            # —— 即"修首页丢弃"只修了一半,并发块内又新开了一处丢失面。
-            # 现改为:失败只**记录不中断**,收齐后按页号归位,最后再抛
-            # —— 异常路径因此也能保住已完成页;`sorted(ordered)` 保证完成先后
-            # 仍不决定回答顺序(与路由并发同一条纪律)。
-            # ⚠️ **口径限定(2026-09-29,code review High-1 收口后)**:上述保证
-            # 针对的是**上游故障**整类(见 `_net.UPSTREAM_FAILURES`:
-            # `UpstreamError` + `OSError`(URLError/超时) + `JSONDecodeError`)。
-            # **程序缺陷**(AttributeError/TypeError 等)刻意不在该元组里,
-            # 仍会穿透成 `internal_error` —— 那时函数**不返回结果**,
-            # 故"不丢已取页"这句话对其无意义(不是它的适用范围)。
-            ordered = {}
-            try:
-                with ThreadPoolExecutor(max_workers=workers) as pool:
-                    futs = {pool.submit(
-                        _net._get_json,
-                        VIP + "/api/questions/%s/answers?page=%d&pageSize=20" % (qid, p),
-                        rate): p for p in range(2, total_pages + 1)}
-                    # ⚠️ **遍历全部 future,不因某个失败而中断循环**(2026-09-29 二次修正):
-                    # 首版 `for fut in as_completed(futs): ad = fut.result()` 一旦某页抛错,
-                    # 循环体立刻向外交棒 —— 其余**已经 in-flight 返回、只差被收集**的页
-                    # 连同 `rest` 一起随栈帧丢弃。实测(同构造:page1=5、page2=3、page3 抛错
-                    # 且最先完成):首版与"只用 `finally` 归位"的中间版都只得 5 条,而 HEAD 串行版
-                    # 保住 8 条 —— 说明**打断收集循环**才是丢页的主因(光挪归位时机不够)。
-                    # 现改为:失败按**页号**记进 `failed` 并继续收集,成功的页全部落进
-                    # `ordered`;收集完毕后再抛出,交外层 `except` 置 `upstream_error`。
-                    for fut in as_completed(futs):
-                        p = futs[fut]
-                        try:
-                            ad = fut.result()
-                        except _net.UPSTREAM_FAILURES:
-                            # ⚠️ **catch 的是"上游故障"整类,不是只看 `UpstreamError`**
-                            # (2026-09-29,code review High-1):`_net._get_json` 只把
-                            # "HTTP 200 带 errorCode"包装成 `UpstreamError`;真实的
-                            # 网络抖动(`URLError`/`socket.timeout`)与"响应非 JSON"
-                            # **直接穿透**。原先此处只 catch `UpstreamError`,于是那些
-                            # 形态下本循环被打断、已取页随栈帧丢弃 —— 而检索侧
-                            # (`_manifest.py` 的路由级 `except _net.UPSTREAM_FAILURES`)
-                            # 早有兜底,两侧不对称。
-                            # 现与检索侧同口径(共用 `_net.UPSTREAM_FAILURES`)。
-                            # ⚠️ **按页号记账,不按完成顺序**(2026-09-29,code review M-1):
-                            # 原先只留"第一个异常",而"第一个"取的是 `as_completed` 的
-                            # 完成序 —— 哪一页被报出去取决于线程调度,等于**让完成先后
-                            # 泄漏进结果**(本仓明令禁止:见 `_manifest` 的路序纪律)。
-                            # 改为记 `{页号: exc_info}`,报告时取**最小页号**那个 —— 确定、
-                            # 可复现,与调度无关(重抛见 `_errors._raise_min`)。
-                            failed_pages[p] = sys.exc_info()   # 三元组:重抛带原 traceback
-                            continue
-                        ordered[p] = [_answer_brief(a) for a in (ad.get("content") or [])]
-                        # ⚠️ 原为 `total_pages = max(total_pages, ad.get("totalPages") or 1)`
-                        # —— 该值是**写后不读**的死写(循环内已用 `range(2, total_pages+1)`
-                        # 固定了页号集合,后面的判断也不再用它),属"留死机制"。
-                        # 已删除(2026-09-29,code review H4)。
-            finally:
-                # ⚠️ **归位写在 `finally` 里,而不是只写在正常路径上**(2026-09-29):
-                # 归位的对象是所有**已成功收集**的页(`ordered`)。它写在 `finally`
-                # 是为了让"已取即保留"这条不变量**不依赖哪条异常路径被走到** ——
-                # 页级 catch 现在覆盖上游故障整类(见 `_net.UPSTREAM_FAILURES`),
-                # 故此处在**上游故障**形态下总能保住已取页;
-                # 若抛的是程序缺陷(刻意不在该元组里),函数本就不返回结果
-                # (`out` 尚未构造),归位与否对调用方无差别。
-                # 就地 extend 到 `pages`(与 `answers` 同一对象),**不重新赋值**。
-                for p in sorted(ordered):
-                    pages.extend(ordered[p])
+            tasks = {p: (lambda p=p: _net._get_json(
+                VIP + "/api/questions/%s/answers?page=%d&pageSize=20" % (qid, p), rate))
+                for p in range(2, total_pages + 1)}
+            ordered, failed_pages = run_ordered(
+                tasks, max_workers=workers, expected=_net.UPSTREAM_FAILURES)
+            # 就地 extend 到 pages(与 answers 同一对象),按页号 sorted 归位,
+            # 不让完成先后决定回答顺序。
+            for p in sorted(ordered):
+                pages.extend([_answer_brief(a) for a in (ordered[p].get("content") or [])])
             if failed_pages:
-                # ⚠️ **报告"最小页号"那个异常,并把失败规模一并记进日志**
-                # (2026-09-29,code review M-1)。两件事在这里一并收口:
-                #   ① **确定性**:`_raise_min` 取的最小键只取决于页号,与线程调度无关
-                #      —— 原先留的"第一个异常"取完成顺序,同一输入可能报不同的页;
-                #   ② **失败规模可见**:`failedPages` 与页号列表进 stderr。
-                #      ⚠️ 这**不是**给调用方的信号(那需要新增契约字段,本轮不做),
-                #      只是让排查者能从日志分清"1 页失败"与"5 页全失败"——
-                #      原先两者连日志都一模一样,属"用一处静默换另一处静默"的弱形态。
+                log("UPSTREAM_ERR:", "route=question_detail qid=%s failedPages=%s"
+                    % (qid, sorted(failed_pages)))
                 _raise_min(failed_pages)
-        # ⚠️ `total_pages` 之后**不再被赋值**(原 `except` 分支里的
-        # `total_pages = None` 也是死写,一并删除 —— 同上 H4)。
-        # ⚠️ `answers` 已在首页处绑定同一个 `pages` 列表对象,此处**不得重新赋值** ——
-        # 重赋值会把异常路径上已保住的部分结果再次切断(见首页处的回归说明)。
+        # total_pages 与 answers 的就地绑定是当前不变量;下面不再重新赋值。
         answers.sort(key=lambda a: (not a["adopted"]))
         # 详情补全只覆盖前 N 条,其余仍是列表摘要 —— 这是**唯一**剩下的截断来源。
         if len(answers) > max(max_detail, 0):
             # ⚠️ 枚举值取自声明(2026-10-01,D12),见函数开头的 `tvals`。
             truncated = tvals["answerLimit"]
-        # 逐条详情并发取(最多 max_detail 条)。⚠️ **按下标写回**:每个 future
-        # 只改自己那一条,顺序由列表下标固定,与完成先后无关。
-        # ⚠️ **逐 future 记账,一个失败不打断其余写回**(2026-09-29,对抗性核实 F1):
-        # 原写法 `for fut in as_completed(futs): det = _answer_brief(fut.result())`
-        # **无逐 future try** —— 一个 future 抛错立刻打断收集循环,其余**已成功返回**
-        # 的 future 其写回**永不执行**,答案对象停在列表摘要 → **无任何标记的静默降级**
-        # (调用方看不出"这条本该有全文")。实测:两条详情,a2 先失败、a1 慢但已成功返回
-        # → a1 的 `contentText` 停在摘要 `'短'` 而非展开文本。
-        # ⚠️ **本块与页级循环同口径**:失败按**下标**记账并 `continue`,收齐后取
-        # **最小下标**重抛(确定性,不随线程调度漂移)。这与页级块是同一条纪律 ——
-        # 原先只修了页级、漏了本块,正是"同一病在两处、只治一处"。
-        # ⚠️ **已知精度边界(刻意不改)**:`truncated` 是**单值枚举**,两个成因无法
-        # 并存 —— 本块抛上游故障时,外层 `except` 会把 `"upstream_error"` **覆盖**
-        # 掉上面刚置的 `"answer_limit"`。让两者并存需要**改对外契约**(新增字段),
-        # 本轮定位是台账校正,不夹带契约变更(与 M-1 同判:契约演进,不是缺陷)。
+        # 逐条详情执行走 _concurrent:按下标归位、逐项失败收集、最小下标重抛。
+        # 已知边界:truncated 是单值枚举,详情失败时外层会置 upstream_error,
+        # 覆盖先前的 answer_limit;这是既有契约,本轮不改。
         targets = answers[:max(max_detail, 0)]
         if targets:
-            det_failed = {}
-            # ⚠️ **并发度必须有上界**(2026-10-01 并发上界收口;编号口径见 ADR-0018 末节
-            # —— 它**不是** ADR-0014 的 `D13`,那套编号指的是"字段集收进 contract.json"):
-            # 原写 `max_workers=len(targets)`,
-            # 即"条目数说了算"—— 与翻页那支同病(那里原写 `total_pages - 1`,
-            # 实测构造 `totalPages=200` 会建 199 个线程)。今天只因声明里
-            # `maxDetail=5 < burst=7` 才没出事,但那是**声明值的巧合**,不是机制。
-            # 现与翻页那支同口径:`max(1, min(len(targets), _burst()))` ——
-            # 上界取 `limits.rate.interactive.burst`(当前 7,与"单次操作最大在飞
-            # 请求数"对齐),不自造第二个限速器(违反"单一来源")。
             det_workers = max(1, min(len(targets), _burst()))
-            with ThreadPoolExecutor(max_workers=det_workers) as pool:
-                futs = {pool.submit(_net._get_json, VIP + "/api/answers/" + a["id"],
-                                    rate): i for i, a in enumerate(targets)}
-                for fut in as_completed(futs):
-                    i = futs[fut]          # 下标:写回定位与失败记账都用它
-                    try:
-                        det = _answer_brief(fut.result())
-                    except _net.UPSTREAM_FAILURES:
-                        det_failed[i] = sys.exc_info()   # 三元组:重抛带原 traceback
-                        continue
-                    a = targets[i]         # 列表里同一个对象,就地写回
-                    if len(det.get("contentText") or "") > len(a.get("contentText") or ""):
-                        a["contentText"] = det["contentText"]
-                    if det.get("discussion"):
-                        a["discussion"] = det["discussion"]
+            tasks = {i: (lambda a=a: _net._get_json(
+                VIP + "/api/answers/" + a["id"], rate)) for i, a in enumerate(targets)}
+            dets, det_failed = run_ordered(
+                tasks, max_workers=det_workers, expected=_net.UPSTREAM_FAILURES)
+            for i in sorted(dets):
+                a = targets[i]         # 列表里同一个对象,就地写回
+                det = _answer_brief(dets[i])
+                if len(det.get("contentText") or "") > len(a.get("contentText") or ""):
+                    a["contentText"] = det["contentText"]
+                if det.get("discussion"):
+                    a["discussion"] = det["discussion"]
             if det_failed:
                 _raise_min(det_failed)
     except _net.UPSTREAM_FAILURES as e:

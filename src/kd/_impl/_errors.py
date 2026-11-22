@@ -5,10 +5,8 @@
 调用方 `except kd.core.QueryTooLong` 照常命中。身份一致性由公开面守卫判据 6 钉住,
 本模块是这三个类唯一的定义地——不得在别处再造一份同名类。
 
-⚠️ 本模块同时承载一处**内部件** `_raise_min`(2026-10-03,X7 收口):它不属于对外
-契约,放在这里是因为它的全部语义都关于异常(重抛),且两个消费方
-(`_manifest` / `_detail`)本就从本模块 import 异常类 —— 放这里**不新增任何 import 边**,
-也不引入循环依赖(本模块零内部依赖)。**不得**从公开面导出它。
+内部件 `_raise_min`(最小键重抛)已于票 08 收进 `_concurrent`,与保序/失败收集
+同一实现;本模块只定义三个对外异常类,不再承载并发执行机制。
 """
 
 
@@ -67,41 +65,3 @@ class InternalError(Exception):
     def __init__(self, message, code=None):
         self.code = code
         super().__init__(message)
-
-
-def _raise_min(accounted):
-    """并发块里的"记账后按最小键重抛"—— 三处共用的**唯一**实现(2026-10-03,X7)。
-
-    `accounted` 是 `{键: sys.exc_info() 三元组}`;本函数重抛**最小键**那一格的异常,
-    并带上它原始的 traceback。
-
-    ## 为什么键必须是路号 / 页号 / 下标
-
-    取 `min(键)` 是**确定性**要求,不是"取最早":同一输入必须恒抛同一个异常,
-    而"最早"取决于线程调度(本仓硬契约:完成先后不得泄漏进结果)。
-    实测过的翻车形态:同一对缺陷只把耗时对调,抛出类型就从 `TypeError` 变成
-    `AttributeError`。
-
-    ## 为什么统一"存 `sys.exc_info()`"而不是"存异常对象"
-
-    三处原先**不是同形**的(澄清 X7 的前提):
-
-    | 位置 | 原存的值 | 原重抛写法 |
-    |---|---|---|
-    | `_manifest` 路由级 | `sys.exc_info()` 三元组 | `raise t[1].with_traceback(t[2])` |
-    | `_detail` 页级 | 异常**对象** | `raise failed_pages[min(...)]` |
-    | `_detail` 详情补全块 | 异常**对象** | `raise det_failed[min(...)]` |
-
-    后两处只留异常对象 ⇒ traceback 在**收集时**就已丢失(except 块退出后
-    `__traceback__` 虽挂得住,但重抛点是收集点而非失败点),异常链更浅。
-    统一到"存三元组 + 本函数重抛"后,三处都获得**完整的原始 traceback** —— 这是
-    **行为变好**,方向与"失败必须可见"一致。
-
-    ⚠️ **不得**改成 `raise accounted[min(accounted)]`(存对象那套):那会静默丢掉
-    `_manifest` 侧原本刻意保留的 traceback 穿透(该处注释原就写着"带原 traceback 穿透")。
-
-    ⚠️ **`accounted` 为空时不得调用** —— 本函数不做兜底(无异常可抛时"抛什么"没有
-    正确答案,那是调用方的前置条件)。调用点必须自带 `if bug:` 之类的守卫。
-    """
-    tb = accounted[min(accounted)]
-    raise tb[1].with_traceback(tb[2])
